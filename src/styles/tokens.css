@@ -1,0 +1,84 @@
+/*
+ * Every colour and measurement in Make a Take lives here.
+ * Never write a colour directly into a rule — add a token instead, and always
+ * give it a value in BOTH themes or the other theme breaks.
+ *
+ * Contrast budget: text tokens are >= 7:1 against --bg and --surface (WCAG AAA),
+ * --border is >= 3:1 against --surface. Checked in e2e/smoke.spec.ts via axe.
+ */
+
+:root {
+  /* Type */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.25rem;
+  --leading: 1.6;
+
+  /* Space */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+
+  /* Shape */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --border-width: 1px;
+  --focus-width: 3px;
+  --focus-offset: 2px;
+  --content-width: 68rem;
+
+  /* Motion — every transition must reference this token so that
+     prefers-reduced-motion can switch it off in one place. */
+  --transition-fast: 120ms ease;
+}
+
+/* Dark ("studio") — the default. */
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #14161a;
+  --surface: #1c1f26;
+  --surface-raised: #232730;
+  --border: #646e7f;
+  --text: #eef0f4;
+  --text-muted: #a9b2c0;
+  --accent: #f2b73d;
+  --accent-contrast: #14161a;
+  --focus-ring: #f2b73d;
+
+  --status-todo: #a9b2c0;
+  --status-doing: #f2b73d;
+  --status-review: #74bcff;
+  --status-done: #5fd39a;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #fbfbf9;
+  --surface: #ffffff;
+  --surface-raised: #f2f2ef;
+  --border: #878e99;
+  --text: #15171c;
+  --text-muted: #4a5260;
+  --accent: #7a4d00;
+  --accent-contrast: #ffffff;
+  --focus-ring: #7a4d00;
+
+  --status-todo: #4a5260;
+  --status-doing: #7a4d00;
+  --status-review: #0a4f96;
+  --status-done: #0a6042;
+}

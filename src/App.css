@@ -1,0 +1,79 @@
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-4);
+  border-bottom: var(--border-width) solid var(--border);
+}
+
+.app-header__name {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.app-main {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-4) var(--space-12);
+}
+
+.app-main h1 {
+  font-size: var(--text-2xl);
+  line-height: 1.2;
+}
+
+.app-lead {
+  margin-top: var(--space-3);
+  max-width: 46ch;
+  color: var(--text-muted);
+  font-size: var(--text-lg);
+}
+
+.app-section-title {
+  margin-top: var(--space-12);
+  font-size: var(--text-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.status-legend__item {
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+/* Status is never colour alone: symbol and word carry the same meaning. */
+.status {
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.status[data-status='todo'] {
+  color: var(--status-todo);
+}
+.status[data-status='doing'] {
+  color: var(--status-doing);
+}
+.status[data-status='review'] {
+  color: var(--status-review);
+}
+.status[data-status='done'] {
+  color: var(--status-done);
+}
