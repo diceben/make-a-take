@@ -48,6 +48,7 @@ const renderPage = () =>
       <AuthContext value={auth}>
         <Routes>
           <Route path="/songs/:id" element={<SongPage />} />
+          <Route path="/" element={<h1>Your songs</h1>} />
         </Routes>
       </AuthContext>
     </MemoryRouter>,
@@ -58,6 +59,8 @@ beforeEach(() => {
   vi.mocked(data.setPhaseStatus).mockResolvedValue(undefined);
   vi.mocked(data.setTrackStatus).mockResolvedValue(undefined);
   vi.mocked(data.setSongNotes).mockResolvedValue(undefined);
+  vi.mocked(data.setSongTitle).mockResolvedValue(undefined);
+  vi.mocked(data.deleteSong).mockResolvedValue(undefined);
 });
 
 describe('SongPage', () => {
@@ -210,6 +213,98 @@ describe('SongPage', () => {
       expect(data.setSongNotes).toHaveBeenCalledWith(auth.client, 's1', 'Snare again');
     });
     expect(await screen.findByText('Saved.')).toBeInTheDocument();
+  });
+
+  it('renames the song in place', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    await user.click(screen.getByRole('button', { name: 'Rename Opening Track' }));
+    const field = screen.getByLabelText('Song title');
+    await user.clear(field);
+    await user.type(field, 'Opening Track (take 2)');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Opening Track (take 2)' }),
+    ).toBeInTheDocument();
+    expect(data.setSongTitle).toHaveBeenCalledWith(auth.client, 's1', 'Opening Track (take 2)');
+  });
+
+  it('will not rename a song to nothing', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    await user.click(screen.getByRole('button', { name: 'Rename Opening Track' }));
+    await user.clear(screen.getByLabelText('Song title'));
+
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('says so when a rename is refused, and keeps the field open', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.setSongTitle).mockRejectedValue(new Error('You may only be able to view this'));
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    await user.click(screen.getByRole('button', { name: 'Rename Opening Track' }));
+    await user.type(screen.getByLabelText('Song title'), ' again');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('You may only be able to view this');
+    expect(screen.getByLabelText('Song title')).toBeInTheDocument();
+  });
+
+  it('asks before deleting, and names what else goes', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    await user.click(screen.getByRole('button', { name: 'Delete this song' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Its seven phases and six tracks go with it',
+    );
+    expect(data.deleteSong).not.toHaveBeenCalled();
+  });
+
+  it('deletes the song and goes back to the list', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    await user.click(screen.getByRole('button', { name: 'Delete this song' }));
+    await user.click(screen.getByRole('button', { name: 'Delete Opening Track' }));
+
+    expect(data.deleteSong).toHaveBeenCalledWith(auth.client, 's1');
+    expect(await screen.findByRole('heading', { name: 'Your songs' })).toBeInTheDocument();
+  });
+
+  it('leaves the song alone when the question is answered with Cancel', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    await user.click(screen.getByRole('button', { name: 'Delete this song' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(data.deleteSong).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Delete this song' })).toBeInTheDocument();
+  });
+
+  it('stays put and says so when the delete is refused', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.deleteSong).mockRejectedValue(new Error('Only its owner can delete it.'));
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    await user.click(screen.getByRole('button', { name: 'Delete this song' }));
+    await user.click(screen.getByRole('button', { name: 'Delete Opening Track' }));
+
+    expect(await screen.findByText('Only its owner can delete it.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Opening Track' })).toBeInTheDocument();
   });
 
   it('reports a song that cannot be loaded', async () => {

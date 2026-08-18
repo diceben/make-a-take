@@ -13,6 +13,63 @@
   text-decoration: underline;
 }
 
+.song-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.song-title__edit {
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.song-title__edit:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.song-title-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.song-title-form input,
+.song-title-form button {
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font: inherit;
+}
+
+.song-title-form input {
+  flex: 1 1 16rem;
+  background: var(--bg);
+  font-size: var(--text-lg);
+}
+
+.song-title-form button {
+  background: var(--surface);
+  font-size: var(--text-sm);
+}
+
+.song-title-form button:not(:disabled):hover {
+  background: var(--surface-raised);
+}
+
+.song-title-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .song-summary {
   max-width: 32rem;
   margin-top: var(--space-4);
@@ -111,6 +168,51 @@
   min-height: calc(var(--text-sm) * var(--leading));
   color: var(--text-muted);
   font-size: var(--text-sm);
+}
+
+/* Set apart at the foot of the page, so nothing here is ever the button next
+   to the one that was wanted. */
+.danger {
+  max-width: 42rem;
+  margin-top: var(--space-8);
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--border);
+}
+
+.danger__question {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.danger__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.danger button {
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+
+/* Two class names, so this beats `.danger button` above it — the same colour
+   set by one class name would lose to it and silently do nothing.
+   The colour is a second signal only: the word "Delete" is already on it. */
+.danger .danger__button {
+  color: var(--status-doing);
+}
+
+.danger button:not(:disabled):hover {
+  background: var(--surface-raised);
+}
+
+.danger button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 @media (max-width: 40rem) {

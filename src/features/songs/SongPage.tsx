@@ -1,10 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
 import {
+  deleteSong,
   getSong,
   setPhaseStatus,
   setSongNotes,
+  setSongTitle,
   setTrackStatus,
   setTrackStatuses,
 } from '../../lib/data';
@@ -24,9 +33,12 @@ export function SongPage() {
   const { id } = useParams<{ id: string }>();
   const { client } = useAuth();
 
+  const navigate = useNavigate();
+
   const [song, setSong] = useState<SongWithSteps | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [error, setError] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -124,7 +136,33 @@ export function SongPage() {
         <Link to="/">← Your songs</Link>
       </p>
 
-      <h1>{song.title}</h1>
+      {renaming ? (
+        <RenameSong
+          title={song.title}
+          onCancel={() => {
+            setRenaming(false);
+          }}
+          onSave={async (title) => {
+            await setSongTitle(client, song.id, title);
+            setSong({ ...song, title: title.trim() });
+            setRenaming(false);
+          }}
+        />
+      ) : (
+        <div className="song-title">
+          <h1>{song.title}</h1>
+          <button
+            type="button"
+            className="song-title__edit"
+            aria-label={`Rename ${song.title}`}
+            onClick={() => {
+              setRenaming(true);
+            }}
+          >
+            Edit
+          </button>
+        </div>
+      )}
 
       <div className="song-summary">
         <ProgressBar progress={progress} label={`Progress of ${song.title}`} />
@@ -207,7 +245,170 @@ export function SongPage() {
           setSong({ ...song, notes });
         }}
       />
+
+      <DeleteSong
+        song={song}
+        onDeleted={() => {
+          void navigate('/');
+        }}
+      />
     </>
+  );
+}
+
+/** Renaming the song, in the place its name already is. */
+function RenameSong({
+  title,
+  onCancel,
+  onSave,
+}: {
+  title: string;
+  onCancel: () => void;
+  onSave: (title: string) => Promise<void>;
+}) {
+  const [value, setValue] = useState(title);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const field = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    field.current?.select();
+  }, []);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const trimmed = value.trim();
+    // A song with no name at all could not be found again in the list.
+    if (trimmed === '') return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      await onSave(trimmed);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'That title was not saved.');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form className="song-title-form" onSubmit={(event) => void submit(event)}>
+      <label htmlFor="song-title" className="visually-hidden">
+        Song title
+      </label>
+      <input
+        id="song-title"
+        ref={field}
+        type="text"
+        value={value}
+        onChange={(event) => {
+          setValue(event.target.value);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') onCancel();
+        }}
+      />
+      <button type="submit" disabled={busy || value.trim() === ''}>
+        {busy ? 'Saving…' : 'Save'}
+      </button>
+      <button type="button" onClick={onCancel} disabled={busy}>
+        Cancel
+      </button>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}
+
+/**
+ * Deleting sits at the foot of the page, away from everything used daily, and
+ * asks first. The question names what else goes — thirteen rows of state that
+ * are easy to forget about while looking at one title.
+ */
+function DeleteSong({ song, onDeleted }: { song: SongWithSteps; onDeleted: () => void }) {
+  const { client } = useAuth();
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const cancel = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    // Focus lands on the way out, not on the irreversible button.
+    if (asking) cancel.current?.focus();
+  }, [asking]);
+
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteSong(client, song.id);
+      onDeleted();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'That song was not deleted.');
+      setBusy(false);
+    }
+  };
+
+  if (!asking) {
+    return (
+      <div className="danger">
+        <button
+          type="button"
+          className="danger__button"
+          onClick={() => {
+            setAsking(true);
+          }}
+        >
+          Delete this song
+        </button>
+      </div>
+    );
+  }
+
+  // Escape backs out from either button, which is where focus can be while the
+  // question is up. It hangs off the buttons rather than the panel around them,
+  // because a div that listens for keys is a control nothing can reach.
+  const escapes = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Escape' && !busy) setAsking(false);
+  };
+
+  return (
+    <div className="danger">
+      <p className="danger__question" role="alert">
+        Delete <strong>{song.title}</strong>? Its seven phases and six tracks go with it. This
+        cannot be undone.
+      </p>
+      <div className="danger__actions">
+        <button
+          type="button"
+          ref={cancel}
+          disabled={busy}
+          onKeyDown={escapes}
+          onClick={() => {
+            setAsking(false);
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="danger__button"
+          disabled={busy}
+          onKeyDown={escapes}
+          onClick={() => void remove()}
+        >
+          {busy ? 'Deleting…' : `Delete ${song.title}`}
+        </button>
+      </div>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
 

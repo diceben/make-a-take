@@ -103,6 +103,39 @@ export async function setTrackStatuses(
   if (error) throw new Error(error.message);
 }
 
+/**
+ * A write that row level security refuses is not an error — the statement runs
+ * and touches nothing. For a status that is survivable; for renaming and
+ * deleting it is not, because the screen would go on showing something the
+ * database never accepted. So both ask for the row back and treat an empty
+ * answer as the refusal it is.
+ */
+export async function setSongTitle(
+  client: SupabaseClient,
+  id: string,
+  title: string,
+): Promise<void> {
+  const { data, error } = await client
+    .from('songs')
+    .update({ title: title.trim() })
+    .eq('id', id)
+    .select('id');
+
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) {
+    throw new Error('That title was not saved. You may only be able to view this song.');
+  }
+}
+
+export async function deleteSong(client: SupabaseClient, id: string): Promise<void> {
+  const { data, error } = await client.from('songs').delete().eq('id', id).select('id');
+
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) {
+    throw new Error('That song was not deleted. Only its owner can delete it.');
+  }
+}
+
 export async function setSongNotes(
   client: SupabaseClient,
   id: string,
