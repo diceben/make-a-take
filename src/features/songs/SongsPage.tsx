@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
 import { createSong, listSongs, setSongsArtist } from '../../lib/data';
 import { PHASE_LABELS, type SongWithSteps } from '../../lib/model';
+import { canonicalArtist, knownArtists } from '../../lib/artists';
 import { currentPhase, songProgress } from '../../lib/progress';
+import { ArtistField } from './ArtistField';
 import { ProgressBar } from './ProgressBar';
 import './SongsPage.css';
 
@@ -82,15 +84,22 @@ export function SongsPage() {
     void load();
   }, [load]);
 
+  // What the two fields offer while a name is being typed.
+  const known = knownArtists(songs);
+
   const addSong = async (title: string, artist: string) => {
     if (!userId) return;
-    const song = await createSong(client, { title, artist, ownerId: userId });
+    const song = await createSong(client, {
+      title,
+      artist: canonicalArtist(artist, known),
+      ownerId: userId,
+    });
     setSongs((current) => [...current, song]);
   };
 
   /** Writes the new name to every song in the group, and reports where it landed. */
   const renameArtist = async (ids: string[], artist: string): Promise<string> => {
-    const trimmed = artist.trim();
+    const trimmed = canonicalArtist(artist, known);
     // Clearing the field is how a song stops naming anybody, so an empty field
     // is null rather than an empty string — one absence, one value.
     const value = trimmed === '' ? null : trimmed;
@@ -126,13 +135,16 @@ export function SongsPage() {
         <p className="app-lead">Nothing here yet. Write down the first one.</p>
       )}
 
-      <AddSong onSubmit={addSong} />
+      <AddSong known={known} onSubmit={addSong} />
 
       {groupByArtist(songs).map((group) => (
         <section key={group.artist} className="artist">
           {editing === group.artist ? (
             <RenameArtist
               value={group.named ? group.artist : ''}
+              // Its own name is no suggestion, and offering it would be the one
+              // row that changes nothing.
+              known={known.filter((name) => name !== group.artist)}
               onCancel={() => {
                 pendingFocus.current = group.artist;
                 setEditing(null);
@@ -201,21 +213,18 @@ function SongTable({ songs }: { songs: SongWithSteps[] }) {
  */
 function RenameArtist({
   value: initial,
+  known,
   onCancel,
   onSave,
 }: {
   value: string;
+  known: string[];
   onCancel: () => void;
   onSave: (value: string) => Promise<void>;
 }) {
   const [value, setValue] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const field = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    field.current?.select();
-  }, []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -233,23 +242,18 @@ function RenameArtist({
 
   return (
     <form className="rename-artist" onSubmit={(event) => void submit(event)}>
-      <label className="rename-artist__label">
-        <span className="visually-hidden">Artist name</span>
-        <input
-          ref={field}
-          type="text"
-          placeholder="Artist (leave empty for none)"
-          value={value}
-          onChange={(event) => {
-            setValue(event.target.value);
-          }}
-          // Escape backs out, which is what the key is for in a field that
-          // replaced something that was already on screen.
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') onCancel();
-          }}
-        />
-      </label>
+      <ArtistField
+        label="Artist name"
+        placeholder="Artist (leave empty for none)"
+        value={value}
+        known={known}
+        onChange={setValue}
+        // Escape backs out, which is what the key is for in a field that
+        // replaced something already on screen — but only once the suggestions
+        // are out of the way, since the first press belongs to them.
+        onEscape={onCancel}
+        focusOnMount
+      />
       <button type="submit" disabled={busy}>
         {busy ? 'Saving…' : 'Save'}
       </button>
@@ -270,7 +274,13 @@ function RenameArtist({
  * is deliberately not required — a song usually exists before it is settled
  * whose it is, and demanding a name would only produce placeholders.
  */
-function AddSong({ onSubmit }: { onSubmit: (title: string, artist: string) => Promise<void> }) {
+function AddSong({
+  known,
+  onSubmit,
+}: {
+  known: string[];
+  onSubmit: (title: string, artist: string) => Promise<void>;
+}) {
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [busy, setBusy] = useState(false);
@@ -307,17 +317,13 @@ function AddSong({ onSubmit }: { onSubmit: (title: string, artist: string) => Pr
           }}
         />
       </label>
-      <label className="add-song__label">
-        <span className="visually-hidden">Artist (optional)</span>
-        <input
-          type="text"
-          placeholder="Artist (optional)"
-          value={artist}
-          onChange={(event) => {
-            setArtist(event.target.value);
-          }}
-        />
-      </label>
+      <ArtistField
+        label="Artist (optional)"
+        placeholder="Artist (optional)"
+        value={artist}
+        known={known}
+        onChange={setArtist}
+      />
       <button type="submit" disabled={busy || title.trim() === ''}>
         {busy ? 'Saving…' : 'Add song'}
       </button>

@@ -191,13 +191,21 @@ describe('SongsPage', () => {
     expect(data.setSongsArtist).not.toHaveBeenCalled();
   });
 
-  it('backs out of a rename on Escape', async () => {
+  it('backs out of a rename on Escape, once the suggestions are out of the way', async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole('heading', { name: 'Sarah Kane' });
 
     await user.click(screen.getByRole('button', { name: 'Edit Sarah Kane' }));
-    await user.type(screen.getByLabelText('Artist name'), ' Trio{Escape}');
+    // "Sarah Kane Trio" is close enough to an existing name to open the list,
+    // and the first Escape belongs to that list, not to the form behind it.
+    await user.type(screen.getByLabelText('Artist name'), ' Trio');
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByLabelText('Artist name')).toBeInTheDocument();
+    expect(screen.queryByRole('listbox')).toBeNull();
+
+    await user.keyboard('{Escape}');
 
     expect(screen.getByRole('heading', { name: 'Sarah Kane' })).toBeInTheDocument();
     expect(data.setSongsArtist).not.toHaveBeenCalled();
@@ -214,6 +222,100 @@ describe('SongsPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('permission denied');
     expect(screen.getByLabelText('Artist name')).toBeInTheDocument();
+  });
+
+  it('suggests an artist that already exists while the name is typed', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.type(screen.getByPlaceholderText('Artist (optional)'), 'srh');
+
+    const list = screen.getByRole('listbox', { name: 'Artist (optional) suggestions' });
+    expect(within(list).getByRole('option', { name: 'Sarah Kane' })).toBeInTheDocument();
+  });
+
+  it('fills the field with the spelling that already exists when a suggestion is taken', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Third Song', 'Sarah Kane'));
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.type(screen.getByPlaceholderText('Song title'), 'Third Song');
+    await user.type(screen.getByPlaceholderText('Artist (optional)'), 'sarah kan');
+    await user.click(screen.getByRole('option', { name: 'Sarah Kane' }));
+    await user.click(screen.getByRole('button', { name: 'Add song' }));
+
+    expect(data.createSong).toHaveBeenCalledWith(auth.client, {
+      title: 'Third Song',
+      artist: 'Sarah Kane',
+      ownerId: 'user-1',
+    });
+  });
+
+  it('still lets a near-miss become its own artist', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Third Song', 'Sarah Kane Trio'));
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.type(screen.getByPlaceholderText('Song title'), 'Third Song');
+    await user.type(screen.getByPlaceholderText('Artist (optional)'), 'Sarah Kane Trio');
+
+    // The existing name is offered, and so is keeping what was typed.
+    expect(screen.getByRole('option', { name: 'Sarah Kane' })).toBeInTheDocument();
+    await user.click(screen.getByRole('option', { name: /as a new artist/ }));
+    await user.click(screen.getByRole('button', { name: 'Add song' }));
+
+    expect(data.createSong).toHaveBeenCalledWith(auth.client, {
+      title: 'Third Song',
+      artist: 'Sarah Kane Trio',
+      ownerId: 'user-1',
+    });
+  });
+
+  it('offers no way to create a name that is already there', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.type(screen.getByPlaceholderText('Artist (optional)'), 'Sarah Kane');
+
+    expect(screen.getByRole('option', { name: 'Sarah Kane' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /as a new artist/ })).not.toBeInTheDocument();
+  });
+
+  it('takes a suggestion with the arrow keys and Enter', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Third Song', 'Sarah Kane'));
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.type(screen.getByPlaceholderText('Song title'), 'Third Song');
+    await user.type(screen.getByPlaceholderText('Artist (optional)'), 'sar');
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    expect(screen.getByPlaceholderText('Artist (optional)')).toHaveValue('Sarah Kane');
+    // Enter landed on the suggestion; it must not also have sent the form.
+    expect(data.createSong).not.toHaveBeenCalled();
+  });
+
+  it('writes a name that differs only in case under the spelling already in use', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Third Song', 'Sarah Kane'));
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.type(screen.getByPlaceholderText('Song title'), 'Third Song');
+    // Typed, never picked from the list.
+    await user.type(screen.getByPlaceholderText('Artist (optional)'), 'SARAH KANE');
+    await user.click(screen.getByRole('button', { name: 'Add song' }));
+
+    expect(data.createSong).toHaveBeenCalledWith(auth.client, {
+      title: 'Third Song',
+      artist: 'Sarah Kane',
+      ownerId: 'user-1',
+    });
   });
 
   it('will not submit an empty title', async () => {
