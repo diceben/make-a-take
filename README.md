@@ -13,8 +13,8 @@ drums, bass, guitars, keys, lead vocals, backing vocals — carries its own stat
 to do, in progress, needs review, or done. Overall progress is weighted, so
 finishing the mix moves the bar further than picking a title.
 
-**Status: early.** The app is being built in stages; this is stage 0, the
-scaffolding. It does not store anything yet.
+**Status: early.** The app is being built in stages. Accounts and the database
+schema are in place; projects and songs arrive next.
 
 ## Install
 
@@ -22,8 +22,14 @@ Requires Node 22 or newer.
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in once a Supabase project exists
+cp .env.example .env.local   # fill in from your Supabase project settings
 ```
+
+Both values in `.env.local` are meant to be public — they ship in the browser
+bundle, and row level security is what protects the data. The `service_role`
+key is a different matter and must never go in there.
+
+The schema lives in `supabase/migrations/`; see [supabase/README.md](supabase/README.md).
 
 ## Usage
 
@@ -41,6 +47,7 @@ npm run lint       # ESLint
 npm run format     # Prettier
 npm test           # unit tests (Vitest)
 npm run test:e2e   # browser tests including accessibility checks (Playwright + axe)
+npm run test:db    # schema and row level security against a throwaway database
 ```
 
 All of the above run in CI on every pull request.

@@ -9,9 +9,11 @@ import prettier from 'eslint-config-prettier';
 export default tseslint.config(
   { ignores: ['dist', 'coverage', 'playwright-report', 'test-results'] },
   js.configs.recommended,
-  tseslint.configs.recommendedTypeChecked,
   {
+    // Type-aware rules only where there are types to be aware of. Applying them
+    // globally makes ESLint demand type information for plain .js/.mjs files.
     files: ['**/*.{ts,tsx}'],
+    extends: [tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       globals: globals.browser,
       parserOptions: {
@@ -35,12 +37,15 @@ export default tseslint.config(
     rules: {
       // Assertion helpers routinely return promises we intentionally await one level up.
       '@typescript-eslint/no-floating-promises': 'off',
+      // Passing a mock to expect() reads as an unbound method to this rule, but
+      // the mock is never called through it.
+      '@typescript-eslint/unbound-method': 'off',
     },
   },
   {
-    files: ['eslint.config.js'],
+    // Config and tooling scripts run in Node, not the browser.
+    files: ['**/*.{js,mjs}'],
     languageOptions: { globals: globals.node },
-    extends: [tseslint.configs.disableTypeChecked],
   },
   prettier,
 );

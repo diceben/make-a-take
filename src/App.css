@@ -43,37 +43,29 @@
   color: var(--text-muted);
 }
 
-.status-legend {
+.app-header__actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin: var(--space-4) 0 0;
-  padding: 0;
-  list-style: none;
+  align-items: center;
+  gap: var(--space-2);
 }
 
-.status-legend__item {
+.app-header__signout {
   padding: var(--space-2) var(--space-3);
   border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--surface);
-}
-
-/* Status is never colour alone: symbol and word carry the same meaning. */
-.status {
+  color: var(--text);
   font-size: var(--text-sm);
-  white-space: nowrap;
 }
 
-.status[data-status='todo'] {
-  color: var(--status-todo);
+.app-header__signout:hover {
+  background: var(--surface-raised);
 }
-.status[data-status='doing'] {
-  color: var(--status-doing);
-}
-.status[data-status='review'] {
-  color: var(--status-review);
-}
-.status[data-status='done'] {
-  color: var(--status-done);
+
+.app-main code {
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
 }

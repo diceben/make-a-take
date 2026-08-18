@@ -1,0 +1,86 @@
+.sign-in {
+  max-width: 24rem;
+  margin: var(--space-12) auto;
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.sign-in h1 {
+  margin-bottom: var(--space-6);
+  font-size: var(--text-xl);
+}
+
+.sign-in__field {
+  margin-bottom: var(--space-4);
+}
+
+.sign-in__field label {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.sign-in__field input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.sign-in__hint {
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* Reserves its line so the form does not jump when a message appears. */
+.sign-in__message {
+  min-height: calc(var(--text-sm) * var(--leading));
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.sign-in__message--error {
+  color: var(--status-doing);
+}
+
+.sign-in__message--info {
+  color: var(--status-review);
+}
+
+.sign-in__submit {
+  width: 100%;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+  transition: opacity var(--transition-fast);
+}
+
+.sign-in__submit:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.sign-in__switch {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-4);
+  padding: var(--space-2);
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  text-decoration: underline;
+}
+
+.sign-in__switch:hover {
+  color: var(--text);
+}

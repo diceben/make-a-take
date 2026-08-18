@@ -30,5 +30,11 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env['CI'],
     timeout: 120_000,
+    // Deliberately fake. The tests only exercise the signed-out UI, and no run
+    // should be able to reach a real project or leave accounts behind.
+    env: {
+      VITE_SUPABASE_URL: 'https://e2e.invalid',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e_not_a_real_key',
+    },
   },
 });

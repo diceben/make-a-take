@@ -12,11 +12,26 @@ npm run typecheck  # TypeScript
 npm run lint       # ESLint
 npm test           # Unit-Tests (Vitest)
 npm run test:e2e   # Playwright inkl. axe-Prüfung
+npm run test:db    # Schema + RLS gegen eine Wegwerf-Datenbank
 npm run build      # Produktionsbuild nach dist/
 ```
 
+`test:db` braucht einen erreichbaren PostgreSQL-16-Server, z. B.
+`PGHOST=localhost PGUSER=postgres npm run test:db`.
+
 Vor jedem Commit: **`npm run typecheck && npm run lint && npm test`**.
 Dieselben Prüfungen laufen in der CI bei jedem Pull Request.
+
+## Supabase
+
+Zugangsdaten kommen aus `.env.local` (Vorlage: `.env.example`). Beide Werte sind
+für den Browser bestimmt — geschützt wird über Row Level Security, nicht über
+Geheimhaltung. Der `service_role`-Key gehört **niemals** ins Repo oder in eine
+`VITE_`-Variable.
+
+Das Schema liegt in `supabase/migrations/` und ist die einzige Wahrheit.
+Struktur **nie** im Supabase-Dashboard zusammenklicken — siehe
+`supabase/README.md`.
 
 ## Das Datenmodell
 
