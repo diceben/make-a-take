@@ -60,6 +60,21 @@ export async function createSong(
   return getSong(client, created.id);
 }
 
+/**
+ * The artist is a word on each song rather than a row of its own, so renaming
+ * one means writing to every song that carries it. The ids come from what is on
+ * screen: matching on the name instead would also catch songs the list is not
+ * showing.
+ */
+export async function setSongsArtist(
+  client: SupabaseClient,
+  ids: string[],
+  artist: string | null,
+): Promise<void> {
+  const { error } = await client.from('songs').update({ artist }).in('id', ids);
+  if (error) throw new Error(error.message);
+}
+
 export async function setPhaseStatus(
   client: SupabaseClient,
   id: string,
@@ -75,6 +90,16 @@ export async function setTrackStatus(
   status: StepStatus,
 ): Promise<void> {
   const { error } = await client.from('track_states').update({ status }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/** Resetting the tracking phase means all six tracks, in one write. */
+export async function setTrackStatuses(
+  client: SupabaseClient,
+  ids: string[],
+  status: StepStatus,
+): Promise<void> {
+  const { error } = await client.from('track_states').update({ status }).in('id', ids);
   if (error) throw new Error(error.message);
 }
 
