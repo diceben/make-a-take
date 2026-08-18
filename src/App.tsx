@@ -1,18 +1,22 @@
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 import { isConfigured } from './lib/supabase';
 import { AuthProvider } from './features/auth/AuthProvider';
 import { useAuth } from './features/auth/auth-context';
 import { SignInForm } from './features/auth/SignInForm';
-import { SongList } from './features/songs/SongList';
+import { SongsPage } from './features/songs/SongsPage';
+import { SongPage } from './features/songs/SongPage';
 import './App.css';
 
 export function App() {
   if (!isConfigured) return <ConfigurationNotice />;
 
   return (
-    <AuthProvider>
-      <Shell />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <Shell />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
@@ -45,8 +49,23 @@ export function Shell() {
       <main id="main" className="app-main">
         {auth.status === 'loading' && <p role="status">Loading…</p>}
         {auth.status === 'signed-out' && <SignInForm />}
-        {auth.status === 'signed-in' && <SongList />}
+        {auth.status === 'signed-in' && (
+          <Routes>
+            <Route path="/" element={<SongsPage />} />
+            <Route path="/songs/:id" element={<SongPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        )}
       </main>
+    </>
+  );
+}
+
+function NotFound() {
+  return (
+    <>
+      <h1>Nothing here</h1>
+      <p className="app-lead">That address does not match anything in Make a Take.</p>
     </>
   );
 }

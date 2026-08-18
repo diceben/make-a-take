@@ -1,0 +1,219 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { useAuth } from '../auth/auth-context';
+import { getSong, setPhaseStatus, setSongNotes, setTrackStatus } from '../../lib/data';
+import {
+  PHASE_LABELS,
+  PHASES,
+  TRACK_LABELS,
+  type SongWithSteps,
+  type StepStatus,
+} from '../../lib/model';
+import { currentPhase, phaseProgress, songProgress, toPercent } from '../../lib/progress';
+import { ProgressBar } from './ProgressBar';
+import { StatusPicker } from './StatusPicker';
+import './SongPage.css';
+
+export function SongPage() {
+  const { id } = useParams<{ id: string }>();
+  const { client } = useAuth();
+
+  const [song, setSong] = useState<SongWithSteps | null>(null);
+  const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!id) return;
+    try {
+      setSong(await getSong(client, id));
+      setState('ready');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not load this song.');
+      setState('failed');
+    }
+  }, [client, id]);
+
+  useEffect(() => {
+    // The rule flags any call that can reach setState. Here every setState in
+    // load() happens after an await, which is the asynchronous pattern the rule
+    // is meant to permit — it simply cannot see through the function call.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
+
+  /**
+   * Status changes apply locally first so the click feels instant, then go to
+   * the server. If the write fails the change is rolled back and said out loud —
+   * silently keeping a value the database rejected would be worse than a stutter.
+   */
+  const changeStatus = async (kind: 'phase' | 'track', stepId: string, status: StepStatus) => {
+    if (!song) return;
+    const previous = song;
+
+    setSong({
+      ...song,
+      phase_states:
+        kind === 'phase'
+          ? song.phase_states.map((step) => (step.id === stepId ? { ...step, status } : step))
+          : song.phase_states,
+      track_states:
+        kind === 'track'
+          ? song.track_states.map((step) => (step.id === stepId ? { ...step, status } : step))
+          : song.track_states,
+    });
+    setError(null);
+
+    try {
+      if (kind === 'phase') await setPhaseStatus(client, stepId, status);
+      else await setTrackStatus(client, stepId, status);
+    } catch (cause) {
+      setSong(previous);
+      setError(cause instanceof Error ? cause.message : 'That change was not saved.');
+    }
+  };
+
+  if (state === 'loading') return <p role="status">Loading…</p>;
+
+  if (state === 'failed' || !song) {
+    return (
+      <>
+        <p className="error" role="alert">
+          {error ?? 'This song could not be found.'}
+        </p>
+        <Link to="/">Back to your songs</Link>
+      </>
+    );
+  }
+
+  const progress = songProgress(song.phase_states, song.track_states);
+  const phase = currentPhase(song.phase_states, song.track_states);
+
+  return (
+    <>
+      <p className="breadcrumb">
+        <Link to="/">← Your songs</Link>
+      </p>
+
+      <h1>{song.title}</h1>
+
+      <div className="song-summary">
+        <ProgressBar progress={progress} label={`Progress of ${song.title}`} />
+        <p className="song-summary__phase">
+          {phase ? `Currently in ${PHASE_LABELS[phase]}` : 'Finished'}
+        </p>
+      </div>
+
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+
+      <h2 className="app-section-title">Phases</h2>
+      <ul className="steps">
+        {PHASES.map((name) => {
+          const step = song.phase_states.find((candidate) => candidate.phase === name);
+
+          if (name === 'tracking') {
+            // Tracking has no status of its own — it is the tracks below it.
+            const trackingPercent = toPercent(
+              phaseProgress('tracking', song.phase_states, song.track_states),
+            );
+            return (
+              <li key={name} className="steps__row steps__row--derived">
+                <span className="steps__name">{PHASE_LABELS[name]}</span>
+                <span className="steps__derived">{trackingPercent}% — from the tracks below</span>
+              </li>
+            );
+          }
+
+          if (!step) return null;
+          return (
+            <li key={name} className="steps__row">
+              <span className="steps__name" id={`phase-${name}`}>
+                {PHASE_LABELS[name]}
+              </span>
+              <StatusPicker
+                labelledBy={`phase-${name}`}
+                value={step.status}
+                onChange={(status) => void changeStatus('phase', step.id, status)}
+              />
+            </li>
+          );
+        })}
+      </ul>
+
+      <h2 className="app-section-title">Tracks</h2>
+      <ul className="steps">
+        {song.track_states.map((step) => (
+          <li key={step.id} className="steps__row">
+            <span className="steps__name" id={`track-${step.track}`}>
+              {TRACK_LABELS[step.track]}
+            </span>
+            <StatusPicker
+              labelledBy={`track-${step.track}`}
+              value={step.status}
+              onChange={(status) => void changeStatus('track', step.id, status)}
+            />
+          </li>
+        ))}
+      </ul>
+
+      <h2 className="app-section-title">Notes</h2>
+      <SongNotes
+        song={song}
+        onSaved={(notes) => {
+          setSong({ ...song, notes });
+        }}
+      />
+    </>
+  );
+}
+
+/**
+ * Notes save when the field loses focus rather than on every keystroke — one
+ * request per thought instead of one per letter.
+ */
+function SongNotes({ song, onSaved }: { song: SongWithSteps; onSaved: (notes: string) => void }) {
+  const { client } = useAuth();
+  const [value, setValue] = useState(song.notes);
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'failed'>('idle');
+  const saved = useRef(song.notes);
+
+  const save = async () => {
+    if (value === saved.current) return;
+    setStatus('saving');
+    try {
+      await setSongNotes(client, song.id, value);
+      saved.current = value;
+      onSaved(value);
+      setStatus('saved');
+    } catch {
+      setStatus('failed');
+    }
+  };
+
+  return (
+    <div className="notes">
+      <label htmlFor="song-notes" className="visually-hidden">
+        Notes about {song.title}
+      </label>
+      <textarea
+        id="song-notes"
+        rows={4}
+        value={value}
+        placeholder="Snare needs another take, timing around bar 32…"
+        onChange={(event) => {
+          setValue(event.target.value);
+          setStatus('idle');
+        }}
+        onBlur={() => void save()}
+      />
+      <p className="notes__status" role="status">
+        {status === 'saving' && 'Saving…'}
+        {status === 'saved' && 'Saved.'}
+        {status === 'failed' && 'Could not save that note.'}
+      </p>
+    </div>
+  );
+}

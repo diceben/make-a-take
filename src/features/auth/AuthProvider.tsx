@@ -40,6 +40,7 @@ export function AuthProvider({
   const auth = useMemo<Auth>(
     () => ({
       ...state,
+      client,
       signIn: async (email, password) => {
         const { error } = await client.auth.signInWithPassword({
           email: email.trim(),
@@ -48,7 +49,16 @@ export function AuthProvider({
         if (error) throw error;
       },
       signUp: async (email, password) => {
-        const { data, error } = await client.auth.signUp({ email: email.trim(), password });
+        const { data, error } = await client.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            // Send people back to wherever they signed up from. Relying on the
+            // project's Site URL instead means the link points at production
+            // even when you registered on localhost.
+            emailRedirectTo: window.location.origin,
+          },
+        });
         if (error) throw error;
         // With email confirmation switched on, Supabase returns a user but no
         // session — the account only becomes usable after the link is followed.

@@ -1,10 +1,13 @@
 import { createContext, use } from 'react';
-import type { Session } from '@supabase/supabase-js';
+import type { Session, SupabaseClient } from '@supabase/supabase-js';
 
 export type AuthState =
   { status: 'loading' } | { status: 'signed-out' } | { status: 'signed-in'; session: Session };
 
 export type Auth = AuthState & {
+  // The same client the provider is driving. Passing it down here keeps tests
+  // able to swap in a fake without a second injection mechanism.
+  client: SupabaseClient;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;

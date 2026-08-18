@@ -8,10 +8,21 @@ import { expect, test, type Page } from '@playwright/test';
  * `color-contrast-enhanced` is the AAA (7:1) rule and is off by default in axe.
  * Make a Take holds itself to it, so we turn it on explicitly.
  */
-const analyse = (page: Page) =>
-  new AxeBuilder({ page })
+async function analyse(page: Page) {
+  // Wait for any colour transition to finish. Sampling mid-fade reports blends
+  // that no token defines, and axe judges what is on screen at that instant.
+  await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          setTimeout(resolve, 200);
+        });
+      }),
+  );
+  return new AxeBuilder({ page })
     .options({ rules: { 'color-contrast-enhanced': { enabled: true } } })
     .analyze();
+}
 
 test('an unauthenticated visitor lands on the sign-in form', async ({ page }) => {
   await page.goto('/');
@@ -29,7 +40,9 @@ test('the form refuses an obviously wrong address', async ({ page }) => {
 });
 
 test.describe('a system asking for dark', () => {
-  test.use({ colorScheme: 'dark' });
+  // Animations off: deterministic colours for the contrast checks, and it
+  // proves the app honours prefers-reduced-motion.
+  test.use({ colorScheme: 'dark', contextOptions: { reducedMotion: 'reduce' } });
 
   test('starts dark and stays accessible in both themes', async ({ page }) => {
     await page.goto('/');
