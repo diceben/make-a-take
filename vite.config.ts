@@ -9,6 +9,10 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // Recorded calls do not survive into the next test. Without this, asserting
+    // that something was *not* called passes or fails depending on which tests
+    // ran before it — a test that lies either way.
+    clearMocks: true,
     // e2e/ belongs to Playwright, not Vitest.
     exclude: ['e2e/**', 'node_modules/**', 'dist/**'],
   },

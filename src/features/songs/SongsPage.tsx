@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
-import { createSong, listSongs } from '../../lib/data';
+import { createSong, listSongs, setSongsArtist } from '../../lib/data';
 import { PHASE_LABELS, type SongWithSteps } from '../../lib/model';
 import { currentPhase, songProgress } from '../../lib/progress';
 import { ProgressBar } from './ProgressBar';
@@ -47,6 +47,23 @@ export function SongsPage() {
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [error, setError] = useState<string | null>(null);
 
+  /** Which group's heading is currently a text field, keyed by its name. */
+  const [editing, setEditing] = useState<string | null>(null);
+
+  // Renaming a group replaces the heading it was started from — and the group
+  // may move, since the list is sorted by name. Without this the focus ring
+  // would land back at the top of the document. Held in a ref so putting focus
+  // somewhere does not itself cause a render.
+  const editButtons = useRef(new Map<string, HTMLButtonElement | null>());
+  const pendingFocus = useRef<string | null>(null);
+
+  useEffect(() => {
+    const target = pendingFocus.current;
+    if (target === null) return;
+    pendingFocus.current = null;
+    editButtons.current.get(target)?.focus();
+  });
+
   const load = useCallback(async () => {
     try {
       setSongs(await listSongs(client));
@@ -69,6 +86,20 @@ export function SongsPage() {
     if (!userId) return;
     const song = await createSong(client, { title, artist, ownerId: userId });
     setSongs((current) => [...current, song]);
+  };
+
+  /** Writes the new name to every song in the group, and reports where it landed. */
+  const renameArtist = async (ids: string[], artist: string): Promise<string> => {
+    const trimmed = artist.trim();
+    // Clearing the field is how a song stops naming anybody, so an empty field
+    // is null rather than an empty string — one absence, one value.
+    const value = trimmed === '' ? null : trimmed;
+
+    await setSongsArtist(client, ids, value);
+    setSongs((current) =>
+      current.map((song) => (ids.includes(song.id) ? { ...song, artist: value } : song)),
+    );
+    return value ?? NO_ARTIST;
   };
 
   if (state === 'loading') return <p role="status">Loading your songs…</p>;
@@ -99,9 +130,43 @@ export function SongsPage() {
 
       {groupByArtist(songs).map((group) => (
         <section key={group.artist} className="artist">
-          <h2 className={group.named ? 'artist__name' : 'artist__name artist__name--none'}>
-            {group.artist}
-          </h2>
+          {editing === group.artist ? (
+            <RenameArtist
+              value={group.named ? group.artist : ''}
+              onCancel={() => {
+                pendingFocus.current = group.artist;
+                setEditing(null);
+              }}
+              onSave={async (name) => {
+                pendingFocus.current = await renameArtist(
+                  group.songs.map((song) => song.id),
+                  name,
+                );
+                setEditing(null);
+              }}
+            />
+          ) : (
+            <div className="artist__heading">
+              <h2 className={group.named ? 'artist__name' : 'artist__name artist__name--none'}>
+                {group.artist}
+              </h2>
+              <button
+                type="button"
+                className="artist__edit"
+                aria-label={
+                  group.named ? `Edit ${group.artist}` : 'Edit the artist for the songs without one'
+                }
+                ref={(node) => {
+                  editButtons.current.set(group.artist, node);
+                }}
+                onClick={() => {
+                  setEditing(group.artist);
+                }}
+              >
+                Edit
+              </button>
+            </div>
+          )}
           <SongTable songs={group.songs} />
         </section>
       ))}
@@ -126,6 +191,77 @@ function SongTable({ songs }: { songs: SongWithSteps[] }) {
         );
       })}
     </ul>
+  );
+}
+
+/**
+ * Renaming an artist in place. Emptying the field is allowed on purpose: it is
+ * the only way to take a name back off songs that should not carry it, and it
+ * drops them into the group at the end rather than deleting anything.
+ */
+function RenameArtist({
+  value: initial,
+  onCancel,
+  onSave,
+}: {
+  value: string;
+  onCancel: () => void;
+  onSave: (value: string) => Promise<void>;
+}) {
+  const [value, setValue] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const field = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    field.current?.select();
+  }, []);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await onSave(value);
+      // Saving unmounts this form, so there is deliberately nothing after the
+      // await on the way out — only the failure path has state left to set.
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'That name was not saved.');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form className="rename-artist" onSubmit={(event) => void submit(event)}>
+      <label className="rename-artist__label">
+        <span className="visually-hidden">Artist name</span>
+        <input
+          ref={field}
+          type="text"
+          placeholder="Artist (leave empty for none)"
+          value={value}
+          onChange={(event) => {
+            setValue(event.target.value);
+          }}
+          // Escape backs out, which is what the key is for in a field that
+          // replaced something that was already on screen.
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') onCancel();
+          }}
+        />
+      </label>
+      <button type="submit" disabled={busy}>
+        {busy ? 'Saving…' : 'Save'}
+      </button>
+      <button type="button" onClick={onCancel} disabled={busy}>
+        Cancel
+      </button>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+    </form>
   );
 }
 

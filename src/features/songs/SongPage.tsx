@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
-import { getSong, setPhaseStatus, setSongNotes, setTrackStatus } from '../../lib/data';
+import {
+  getSong,
+  setPhaseStatus,
+  setSongNotes,
+  setTrackStatus,
+  setTrackStatuses,
+} from '../../lib/data';
 import {
   PHASE_LABELS,
   PHASES,
@@ -72,6 +78,30 @@ export function SongPage() {
     }
   };
 
+  /**
+   * Tracking has no status of its own, so resetting it means resetting all six
+   * tracks — in one write, because six that half succeed would leave the phase
+   * in a state nobody asked for.
+   */
+  const resetTracking = async () => {
+    if (!song) return;
+    const previous = song;
+    const ids = song.track_states.map((step) => step.id);
+
+    setSong({
+      ...song,
+      track_states: song.track_states.map((step) => ({ ...step, status: 'todo' })),
+    });
+    setError(null);
+
+    try {
+      await setTrackStatuses(client, ids, 'todo');
+    } catch (cause) {
+      setSong(previous);
+      setError(cause instanceof Error ? cause.message : 'That change was not saved.');
+    }
+  };
+
   if (state === 'loading') return <p role="status">Loading…</p>;
 
   if (state === 'failed' || !song) {
@@ -115,14 +145,36 @@ export function SongPage() {
           const step = song.phase_states.find((candidate) => candidate.phase === name);
 
           if (name === 'tracking') {
-            // Tracking has no status of its own — it is the tracks below it.
+            // Tracking has no status of its own — it is the tracks nested below.
             const trackingPercent = toPercent(
               phaseProgress('tracking', song.phase_states, song.track_states),
             );
+            const untouched = song.track_states.every((track) => track.status === 'todo');
             return (
-              <li key={name} className="steps__row steps__row--derived">
-                <span className="steps__name">{PHASE_LABELS[name]}</span>
-                <span className="steps__derived">{trackingPercent}% — from the tracks below</span>
+              <li key={name} className="steps__group">
+                <div className="steps__row steps__row--derived">
+                  <span className="steps__name">{PHASE_LABELS[name]}</span>
+                  <span className="steps__derived">{trackingPercent}% — from the tracks below</span>
+                  <ResetButton
+                    step={PHASE_LABELS[name]}
+                    disabled={untouched}
+                    onClick={() => void resetTracking()}
+                  />
+                </div>
+                <ul className="steps steps--nested">
+                  {song.track_states.map((track) => (
+                    <li key={track.id} className="steps__row">
+                      <span className="steps__name" id={`track-${track.track}`}>
+                        {TRACK_LABELS[track.track]}
+                      </span>
+                      <StatusPicker
+                        labelledBy={`track-${track.track}`}
+                        value={track.status}
+                        onChange={(status) => void changeStatus('track', track.id, status)}
+                      />
+                    </li>
+                  ))}
+                </ul>
               </li>
             );
           }
@@ -138,25 +190,14 @@ export function SongPage() {
                 value={step.status}
                 onChange={(status) => void changeStatus('phase', step.id, status)}
               />
+              <ResetButton
+                step={PHASE_LABELS[name]}
+                disabled={step.status === 'todo'}
+                onClick={() => void changeStatus('phase', step.id, 'todo')}
+              />
             </li>
           );
         })}
-      </ul>
-
-      <h2 className="app-section-title">Tracks</h2>
-      <ul className="steps">
-        {song.track_states.map((step) => (
-          <li key={step.id} className="steps__row">
-            <span className="steps__name" id={`track-${step.track}`}>
-              {TRACK_LABELS[step.track]}
-            </span>
-            <StatusPicker
-              labelledBy={`track-${step.track}`}
-              value={step.status}
-              onChange={(status) => void changeStatus('track', step.id, status)}
-            />
-          </li>
-        ))}
       </ul>
 
       <h2 className="app-section-title">Notes</h2>
@@ -167,6 +208,39 @@ export function SongPage() {
         }}
       />
     </>
+  );
+}
+
+/**
+ * Back to the start for one phase. The status picker can already do this with
+ * its "To do" option; this is the one-click way out of a phase that was carried
+ * too far, and for tracking it is the only way, since tracking has no picker.
+ *
+ * Disabled when there is nothing to undo, so the button never lies about having
+ * done something.
+ */
+function ResetButton({
+  step,
+  disabled,
+  onClick,
+}: {
+  step: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    // The name says which step, because "Reset" seven times over tells a screen
+    // reader nothing. It still starts with the visible word, so saying "reset"
+    // to a voice control matches it.
+    <button
+      type="button"
+      className="steps__reset"
+      aria-label={`Reset ${step}`}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      Reset
+    </button>
   );
 }
 

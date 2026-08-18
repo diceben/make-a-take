@@ -131,6 +131,63 @@ describe('SongPage', () => {
     expect(within(mixing).getByRole('radio', { name: /To do/ })).toBeChecked();
   });
 
+  it('resets a phase that has been carried too far', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.getSong).mockResolvedValue(makeSong({ writing: 'done' }));
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    const bar = screen.getByRole('progressbar', { name: 'Progress of Opening Track' });
+    expect(bar).toHaveAttribute('aria-valuenow', '10');
+
+    await user.click(screen.getByRole('button', { name: 'Reset Writing' }));
+
+    expect(bar).toHaveAttribute('aria-valuenow', '0');
+    expect(data.setPhaseStatus).toHaveBeenCalledWith(auth.client, 'p-writing', 'todo');
+  });
+
+  it('offers no reset on a phase that is already back at the start', async () => {
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+    expect(screen.getByRole('button', { name: 'Reset Mixing' })).toBeDisabled();
+  });
+
+  it('resets tracking by resetting all six tracks in one write', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.setTrackStatuses).mockResolvedValue(undefined);
+    vi.mocked(data.getSong).mockResolvedValue(makeSong({ drums: 'done', bass: 'review' }));
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    await user.click(screen.getByRole('button', { name: 'Reset Tracking' }));
+
+    expect(data.setTrackStatuses).toHaveBeenCalledWith(
+      auth.client,
+      TRACKS.map((track) => `t-${track}`),
+      'todo',
+    );
+    expect(screen.getByRole('progressbar', { name: 'Progress of Opening Track' })).toHaveAttribute(
+      'aria-valuenow',
+      '0',
+    );
+  });
+
+  it('rolls a failed tracking reset back', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.setTrackStatuses).mockRejectedValue(new Error('permission denied'));
+    vi.mocked(data.getSong).mockResolvedValue(makeSong({ drums: 'done' }));
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    await user.click(screen.getByRole('button', { name: 'Reset Tracking' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('permission denied');
+    const drums = screen.getByRole('radiogroup', { name: 'Drums' });
+    await waitFor(() => {
+      expect(within(drums).getByRole('radio', { name: /Done/ })).toBeChecked();
+    });
+  });
+
   it('names the phase the song is sitting on', async () => {
     vi.mocked(data.getSong).mockResolvedValue(
       makeSong({ writing: 'done', arrangement: 'done', preproduction: 'done' }),
