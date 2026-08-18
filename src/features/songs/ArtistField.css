@@ -1,0 +1,53 @@
+.artist-field {
+  position: relative;
+}
+
+.artist-field input {
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+/* The list covers whatever is under it rather than pushing the page around
+   while somebody is still typing. */
+.artist-field__list {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  min-width: 100%;
+  max-width: 20rem;
+  margin: 0;
+  padding: var(--space-1);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  list-style: none;
+}
+
+.artist-field__list[hidden] {
+  display: none;
+}
+
+.artist-field__option {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Keyboard and mouse land on the same highlight, so there is never a question
+   which row Enter would take. */
+.artist-field__option.is-active,
+.artist-field__option:hover {
+  background: var(--surface-raised);
+}
+
+.artist-field__option strong {
+  font-weight: 600;
+}
