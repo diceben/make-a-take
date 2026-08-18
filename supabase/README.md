@@ -56,3 +56,11 @@ Two files exist only for local runs and are never applied to Supabase:
   every song always has exactly seven phases and six tracks. There is no insert
   or delete policy on those tables: only the trigger creates them, and they die
   with their song.
+- **A select policy must be answerable from the row in front of it.** The
+  `RETURNING` that `.insert().select()` sends makes Postgres check the new row
+  against the select policy while that row is still invisible to a lookup, so a
+  policy that asks an access function to fetch the row _by id_ refuses it. The
+  select policies on `projects` and `songs` therefore read `owner_id` and
+  `project_id` straight off the row and only then fall back to a lookup. Both
+  additions are redundant for rows that already exist; they matter only for the
+  one being written. The tests cover this by keeping the `RETURNING`.
