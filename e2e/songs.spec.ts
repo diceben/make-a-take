@@ -131,8 +131,8 @@ test.describe('a song', () => {
     await page.goto('/songs/s1');
 
     await expect(page.getByRole('heading', { level: 1, name: 'Opening Track' })).toBeVisible();
-    await expect(page.getByRole('radiogroup', { name: 'Mixing' })).toBeVisible();
-    await expect(page.getByRole('radiogroup', { name: 'Lead vocals' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Mixing:/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Lead vocals:/ })).toBeVisible();
     await expect(page.getByText(/from the tracks below/)).toBeVisible();
 
     expect((await analyse(page)).violations).toEqual([]);
@@ -149,14 +149,14 @@ test.describe('a song', () => {
     const bar = page.getByRole('progressbar', { name: 'Progress of Opening Track' });
     await expect(bar).toHaveAttribute('aria-valuenow', '25');
 
-    // Arrow keys move within a radio group, which is why real radios are used.
-    const mixing = page.getByRole('radiogroup', { name: 'Mixing' });
-    await mixing.getByRole('radio', { name: /To do/ }).focus();
+    // One control per step: arrow keys walk it forward, and back again.
+    const mixing = page.getByRole('button', { name: /^Mixing:/ });
+    await mixing.focus();
     await page.keyboard.press('ArrowRight');
     await page.keyboard.press('ArrowRight');
     await page.keyboard.press('ArrowRight');
 
-    await expect(mixing.getByRole('radio', { name: /Done/ })).toBeChecked();
+    await expect(mixing).toHaveAccessibleName('Mixing: Done. Next: To do');
     await expect(bar).toHaveAttribute('aria-valuenow', '45'); // 25 + mixing's 20
   });
 });

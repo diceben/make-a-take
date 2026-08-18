@@ -5,6 +5,7 @@
 }
 
 .progress__track {
+  position: relative;
   flex: 1;
   height: 0.5rem;
   min-width: 6rem;
@@ -12,6 +13,26 @@
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
   overflow: hidden;
+}
+
+/* One flash across the whole bar when it moves forward, then gone. */
+.progress__pulse {
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  opacity: 0;
+  animation: progress-pulse 420ms ease-out;
+  pointer-events: none;
+}
+
+@keyframes progress-pulse {
+  from {
+    opacity: 0.55;
+  }
+
+  to {
+    opacity: 0;
+  }
 }
 
 .progress__fill {
