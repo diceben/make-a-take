@@ -244,6 +244,36 @@ select test.ok(
   (select count(*) from created) = 1,
   'alice can invite somebody and read the membership back');
 
+-- Deleting is the other write the client reads back, and for a reason: a delete
+-- the policy forbids is filtered, not refused, so the statement succeeds and
+-- says nothing. Empty RETURNING is the only sign that nothing happened.
+select test.login('22222222-2222-2222-2222-222222222222');
+
+with removed as (
+  delete from public.songs
+  where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+  returning id
+)
+select test.ok(
+  (select count(*) from removed) = 0,
+  'an editor deleting a song he does not own gets nothing back');
+
+select test.login('11111111-1111-1111-1111-111111111111');
+
+with removed as (
+  delete from public.songs
+  where id = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
+  returning id
+)
+select test.ok(
+  (select count(*) from removed) = 1,
+  'alice can delete her own song and read back what went');
+
+select test.ok(
+  (select count(*) from public.phase_states
+   where song_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc') = 0,
+  'the deleted song took its phases with it');
+
 -- Reading a row back must not become a way in.
 select test.login('55555555-5555-5555-5555-555555555555');
 
