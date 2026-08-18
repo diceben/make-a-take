@@ -22,11 +22,10 @@ const phases = (overrides: Partial<Record<string, StepStatus>> = {}): PhaseState
 const tracks = (status: StepStatus = 'todo'): TrackState[] =>
   TRACKS.map((track) => ({ id: `t-${track}`, song_id: 's1', track, status, note: '' }));
 
-const song = (id: string, title: string, projectId: string, phaseOverrides = {}) => ({
+const song = (id: string, title: string, artist: string | null, phaseOverrides = {}) => ({
   id,
-  project_id: projectId,
   title,
-  artist: null,
+  artist,
   deadline: null,
   notes: '',
   position: 0,
@@ -53,24 +52,40 @@ const renderPage = () =>
   );
 
 beforeEach(() => {
-  vi.mocked(data.listProjects).mockResolvedValue([
-    { id: 'proj-1', name: 'Debut EP', artist: null, deadline: null },
-  ]);
   vi.mocked(data.listSongs).mockResolvedValue([
-    song('s1', 'Opening Track', 'proj-1', { writing: 'done', arrangement: 'done' }),
-    song('s2', 'The Slow One', 'proj-1'),
+    song('s1', 'Opening Track', 'Sarah Kane', { writing: 'done', arrangement: 'done' }),
+    song('s2', 'The Slow One', 'Sarah Kane'),
   ]);
 });
 
 describe('SongsPage', () => {
-  it('lists the songs of each project', async () => {
+  it('groups the songs under the artist they name', async () => {
     renderPage();
-    expect(await screen.findByRole('heading', { name: 'Debut EP' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Sarah Kane' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Opening Track' })).toHaveAttribute(
       'href',
       '/songs/s1',
     );
     expect(screen.getByRole('link', { name: 'The Slow One' })).toBeInTheDocument();
+  });
+
+  it('gathers songs without an artist at the end, under their own heading', async () => {
+    vi.mocked(data.listSongs).mockResolvedValue([
+      song('s0', 'Untitled Idea', null),
+      song('s1', 'Opening Track', 'Sarah Kane'),
+      song('s2', 'Another One', 'Bell Foundry'),
+    ]);
+    renderPage();
+    await screen.findByRole('link', { name: 'Untitled Idea' });
+
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
+    expect(headings).toEqual(['Bell Foundry', 'Sarah Kane', 'No artist yet']);
+  });
+
+  it('treats an artist of only spaces as no artist at all', async () => {
+    vi.mocked(data.listSongs).mockResolvedValue([song('s1', 'Opening Track', '   ')]);
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'No artist yet' })).toBeInTheDocument();
   });
 
   it('shows weighted progress, not a count of finished steps', async () => {
@@ -89,75 +104,73 @@ describe('SongsPage', () => {
     expect(screen.getByText('Pre-production')).toBeInTheDocument();
   });
 
-  it('says so when a project has no songs', async () => {
+  it('says so when there is nothing at all', async () => {
     vi.mocked(data.listSongs).mockResolvedValue([]);
     renderPage();
-    expect(await screen.findByText('No songs in here yet.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Nothing here yet. Write down the first one.'),
+    ).toBeInTheDocument();
   });
 
-  it('adds a project and shows it without a reload', async () => {
+  it('adds a song and shows it without a reload', async () => {
     const user = userEvent.setup();
-    vi.mocked(data.createProject).mockResolvedValue({
-      id: 'proj-2',
-      name: 'Second Record',
-      artist: null,
-      deadline: null,
-    });
+    vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Third Song', 'Sarah Kane'));
     renderPage();
-    await screen.findByRole('heading', { name: 'Debut EP' });
-
-    await user.type(screen.getByPlaceholderText('Project name'), 'Second Record');
-    await user.click(screen.getByRole('button', { name: 'Create project' }));
-
-    expect(await screen.findByRole('heading', { name: 'Second Record' })).toBeInTheDocument();
-    expect(data.createProject).toHaveBeenCalledWith(auth.client, {
-      name: 'Second Record',
-      ownerId: 'user-1',
-    });
-  });
-
-  it('adds a song to the right project', async () => {
-    const user = userEvent.setup();
-    vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Third Song', 'proj-1'));
-    renderPage();
-    await screen.findByRole('heading', { name: 'Debut EP' });
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
 
     await user.type(screen.getByPlaceholderText('Song title'), 'Third Song');
+    await user.type(screen.getByPlaceholderText('Artist (optional)'), 'Sarah Kane');
     await user.click(screen.getByRole('button', { name: 'Add song' }));
 
     expect(await screen.findByRole('link', { name: 'Third Song' })).toBeInTheDocument();
     expect(data.createSong).toHaveBeenCalledWith(auth.client, {
-      projectId: 'proj-1',
       title: 'Third Song',
+      artist: 'Sarah Kane',
+      ownerId: 'user-1',
+    });
+  });
+
+  it('adds a song without an artist', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Nameless', null));
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.type(screen.getByPlaceholderText('Song title'), 'Nameless');
+    await user.click(screen.getByRole('button', { name: 'Add song' }));
+
+    expect(await screen.findByRole('heading', { name: 'No artist yet' })).toBeInTheDocument();
+    expect(data.createSong).toHaveBeenCalledWith(auth.client, {
+      title: 'Nameless',
+      artist: '',
+      ownerId: 'user-1',
     });
   });
 
   it('will not submit an empty title', async () => {
     renderPage();
-    await screen.findByRole('heading', { name: 'Debut EP' });
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
     expect(screen.getByRole('button', { name: 'Add song' })).toBeDisabled();
   });
 
   it('reports a failed load and offers to retry', async () => {
     const user = userEvent.setup();
-    vi.mocked(data.listProjects).mockRejectedValueOnce(new Error('network is down'));
+    vi.mocked(data.listSongs).mockRejectedValueOnce(new Error('network is down'));
     renderPage();
 
     expect(await screen.findByRole('alert')).toHaveTextContent('network is down');
 
-    vi.mocked(data.listProjects).mockResolvedValue([
-      { id: 'proj-1', name: 'Debut EP', artist: null, deadline: null },
-    ]);
+    vi.mocked(data.listSongs).mockResolvedValue([song('s1', 'Opening Track', 'Sarah Kane')]);
     await user.click(screen.getByRole('button', { name: 'Try again' }));
 
-    expect(await screen.findByRole('heading', { name: 'Debut EP' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Sarah Kane' })).toBeInTheDocument();
   });
 
   it('reports a failed save without losing what was typed', async () => {
     const user = userEvent.setup();
     vi.mocked(data.createSong).mockRejectedValue(new Error('permission denied'));
     renderPage();
-    await screen.findByRole('heading', { name: 'Debut EP' });
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
 
     const field = screen.getByPlaceholderText('Song title');
     await user.type(field, 'Doomed Song');

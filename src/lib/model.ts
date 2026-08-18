@@ -79,16 +79,8 @@ export type TrackState = {
   note: string;
 };
 
-export type Project = {
-  id: string;
-  name: string;
-  artist: string | null;
-  deadline: string | null;
-};
-
 export type Song = {
   id: string;
-  project_id: string;
   title: string;
   artist: string | null;
   deadline: string | null;

@@ -12,7 +12,6 @@ vi.mock('../../lib/data');
 
 const makeSong = (overrides: Partial<Record<string, StepStatus>> = {}): SongWithSteps => ({
   id: 's1',
-  project_id: 'proj-1',
   title: 'Opening Track',
   artist: null,
   deadline: null,

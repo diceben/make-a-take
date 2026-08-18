@@ -23,9 +23,8 @@ const TRACKS = ['drums', 'bass', 'guitars', 'keys', 'lead_vocals', 'backing_voca
 
 const song = (id: string, title: string, done: string[] = []) => ({
   id,
-  project_id: 'proj-1',
   title,
-  artist: null,
+  artist: 'Sarah Kane',
   deadline: null,
   notes: '',
   position: 0,
@@ -64,14 +63,6 @@ async function signedIn(page: Page) {
     localStorage.setItem('sb-e2e-auth-token', JSON.stringify(session));
   });
 
-  await page.route('**/rest/v1/projects*', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify([{ id: 'proj-1', name: 'Debut EP', artist: null, deadline: null }]),
-    }),
-  );
-
   await page.route('**/rest/v1/songs*', (route) =>
     route.fulfill({
       status: 200,
@@ -109,7 +100,7 @@ test.describe('the song list', () => {
     await signedIn(page);
     await page.goto('/');
 
-    await expect(page.getByRole('heading', { name: 'Debut EP' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sarah Kane' })).toBeVisible();
     await expect(
       page.getByRole('progressbar', { name: 'Progress of Opening Track' }),
     ).toHaveAttribute(
@@ -122,7 +113,7 @@ test.describe('the song list', () => {
   test('is accessible in both themes', async ({ page }) => {
     await signedIn(page);
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Debut EP' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sarah Kane' })).toBeVisible();
     expect((await analyse(page)).violations).toEqual([]);
 
     await page.getByRole('button', { name: 'Light theme' }).click();

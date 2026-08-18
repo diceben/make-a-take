@@ -1,17 +1,17 @@
-.project {
+.artist {
   margin-top: var(--space-8);
   padding-top: var(--space-4);
   border-top: var(--border-width) solid var(--border);
 }
 
-.project__name {
+.artist__name {
   font-size: var(--text-lg);
 }
 
-.project__empty {
-  margin: var(--space-3) 0;
+/* Not a name but the absence of one, so it does not read as loudly as one. */
+.artist__name--none {
   color: var(--text-muted);
-  font-size: var(--text-sm);
+  font-style: italic;
 }
 
 .song-list {
@@ -44,7 +44,7 @@
   font-size: var(--text-sm);
 }
 
-.add-thing {
+.add-song {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -52,7 +52,7 @@
   margin-top: var(--space-3);
 }
 
-.add-thing__label input {
+.add-song__label input {
   padding: var(--space-2) var(--space-3);
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius-sm);
@@ -61,7 +61,7 @@
   font: inherit;
 }
 
-.add-thing button {
+.add-song button {
   padding: var(--space-2) var(--space-3);
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius-sm);
@@ -70,12 +70,12 @@
   font-size: var(--text-sm);
 }
 
-.add-thing button:disabled {
+.add-song button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.add-thing button:not(:disabled):hover {
+.add-song button:not(:disabled):hover {
   background: var(--surface-raised);
 }
 

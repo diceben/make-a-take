@@ -8,7 +8,7 @@ import { AuthProvider } from './features/auth/AuthProvider';
 import { THEME_STORAGE_KEY } from './theme';
 import * as data from './lib/data';
 
-// The signed-in view loads projects and songs; this stage only cares that the
+// The signed-in view loads the songs; this stage only cares that the
 // right view appears, so the database layer is stubbed out empty.
 vi.mock('./lib/data');
 
@@ -46,7 +46,6 @@ function fakeClient({
 }
 
 const renderApp = (client: SupabaseClient) => {
-  vi.mocked(data.listProjects).mockResolvedValue([]);
   vi.mocked(data.listSongs).mockResolvedValue([]);
   return render(
     <MemoryRouter>

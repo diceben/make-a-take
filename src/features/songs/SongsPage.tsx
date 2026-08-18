@@ -1,30 +1,55 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
-import { createProject, createSong, listProjects, listSongs } from '../../lib/data';
-import { PHASE_LABELS, type Project, type SongWithSteps } from '../../lib/model';
+import { createSong, listSongs } from '../../lib/data';
+import { PHASE_LABELS, type SongWithSteps } from '../../lib/model';
 import { currentPhase, songProgress } from '../../lib/progress';
 import { ProgressBar } from './ProgressBar';
 import './SongsPage.css';
+
+/** The heading for songs that do not name an artist. */
+const NO_ARTIST = 'No artist yet';
+
+type Group = { artist: string; named: boolean; songs: SongWithSteps[] };
+
+/**
+ * Songs group under the artist they name. An artist is a word on the song, not
+ * a row somewhere, so the grouping is derived on every render rather than
+ * stored — there is nothing that could drift out of step with it.
+ *
+ * Named artists come first in alphabetical order; the songs that name nobody
+ * gather at the end, where they read as something still to do.
+ */
+function groupByArtist(songs: SongWithSteps[]): Group[] {
+  const groups = new Map<string, Group>();
+
+  for (const song of songs) {
+    const name = song.artist?.trim() ?? '';
+    const named = name !== '';
+    const artist = named ? name : NO_ARTIST;
+    const group = groups.get(artist) ?? { artist, named, songs: [] };
+    group.songs.push(song);
+    groups.set(artist, group);
+  }
+
+  return [...groups.values()].sort((a, b) => {
+    if (a.named !== b.named) return a.named ? -1 : 1;
+    return a.artist.localeCompare(b.artist);
+  });
+}
 
 export function SongsPage() {
   const auth = useAuth();
   const { client } = auth;
   const userId = auth.status === 'signed-in' ? auth.session.user.id : null;
 
-  const [projects, setProjects] = useState<Project[]>([]);
   const [songs, setSongs] = useState<SongWithSteps[]>([]);
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [loadedProjects, loadedSongs] = await Promise.all([
-        listProjects(client),
-        listSongs(client),
-      ]);
-      setProjects(loadedProjects);
-      setSongs(loadedSongs);
+      setSongs(await listSongs(client));
       setState('ready');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load your songs.');
@@ -40,14 +65,9 @@ export function SongsPage() {
     void load();
   }, [load]);
 
-  const addProject = async (name: string) => {
+  const addSong = async (title: string, artist: string) => {
     if (!userId) return;
-    const project = await createProject(client, { name, ownerId: userId });
-    setProjects((current) => [...current, project]);
-  };
-
-  const addSong = async (projectId: string, title: string) => {
-    const song = await createSong(client, { projectId, title });
+    const song = await createSong(client, { title, artist, ownerId: userId });
     setSongs((current) => [...current, song]);
   };
 
@@ -71,40 +91,25 @@ export function SongsPage() {
     <>
       <h1>Your songs</h1>
 
-      {projects.length === 0 && (
-        <p className="app-lead">
-          Start with a project — an album, an EP, or just somewhere to put the songs.
-        </p>
+      {songs.length === 0 && (
+        <p className="app-lead">Nothing here yet. Write down the first one.</p>
       )}
 
-      {projects.map((project) => (
-        <section key={project.id} className="project">
-          <h2 className="project__name">{project.name}</h2>
-          <SongTable songs={songs.filter((song) => song.project_id === project.id)} />
-          <AddThing
-            label="Add a song"
-            placeholder="Song title"
-            submitLabel="Add song"
-            onSubmit={(title) => addSong(project.id, title)}
-          />
+      <AddSong onSubmit={addSong} />
+
+      {groupByArtist(songs).map((group) => (
+        <section key={group.artist} className="artist">
+          <h2 className={group.named ? 'artist__name' : 'artist__name artist__name--none'}>
+            {group.artist}
+          </h2>
+          <SongTable songs={group.songs} />
         </section>
       ))}
-
-      <section className="project project--new">
-        <AddThing
-          label="New project"
-          placeholder="Project name"
-          submitLabel="Create project"
-          onSubmit={addProject}
-        />
-      </section>
     </>
   );
 }
 
 function SongTable({ songs }: { songs: SongWithSteps[] }) {
-  if (songs.length === 0) return <p className="project__empty">No songs in here yet.</p>;
-
   return (
     <ul className="song-list">
       {songs.map((song) => {
@@ -124,32 +129,28 @@ function SongTable({ songs }: { songs: SongWithSteps[] }) {
   );
 }
 
-/** One-field form used for both projects and songs. */
-function AddThing({
-  label,
-  placeholder,
-  submitLabel,
-  onSubmit,
-}: {
-  label: string;
-  placeholder: string;
-  submitLabel: string;
-  onSubmit: (value: string) => Promise<void>;
-}) {
-  const [value, setValue] = useState('');
+/**
+ * The one way into the app: a title, and optionally who it is for. The artist
+ * is deliberately not required — a song usually exists before it is settled
+ * whose it is, and demanding a name would only produce placeholders.
+ */
+function AddSong({ onSubmit }: { onSubmit: (title: string, artist: string) => Promise<void> }) {
+  const [title, setTitle] = useState('');
+  const [artist, setArtist] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const trimmed = value.trim();
+    const trimmed = title.trim();
     if (trimmed === '') return;
 
     setBusy(true);
     setError(null);
     try {
-      await onSubmit(trimmed);
-      setValue('');
+      await onSubmit(trimmed, artist);
+      setTitle('');
+      setArtist('');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'That did not work.');
     } finally {
@@ -158,20 +159,31 @@ function AddThing({
   };
 
   return (
-    <form className="add-thing" onSubmit={(event) => void submit(event)}>
-      <label className="add-thing__label">
-        <span className="visually-hidden">{label}</span>
+    <form className="add-song" onSubmit={(event) => void submit(event)}>
+      <label className="add-song__label">
+        <span className="visually-hidden">Song title</span>
         <input
           type="text"
-          placeholder={placeholder}
-          value={value}
+          placeholder="Song title"
+          value={title}
           onChange={(event) => {
-            setValue(event.target.value);
+            setTitle(event.target.value);
           }}
         />
       </label>
-      <button type="submit" disabled={busy || value.trim() === ''}>
-        {busy ? 'Saving…' : submitLabel}
+      <label className="add-song__label">
+        <span className="visually-hidden">Artist (optional)</span>
+        <input
+          type="text"
+          placeholder="Artist (optional)"
+          value={artist}
+          onChange={(event) => {
+            setArtist(event.target.value);
+          }}
+        />
+      </label>
+      <button type="submit" disabled={busy || title.trim() === ''}>
+        {busy ? 'Saving…' : 'Add song'}
       </button>
       {error && (
         <p className="error" role="alert">

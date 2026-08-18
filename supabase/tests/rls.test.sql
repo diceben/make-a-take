@@ -54,37 +54,26 @@ grant execute on all functions in schema test to authenticated;
 -- --------------------------------------------------------------------- setup
 
 -- Fixed ids so the assertions below read as prose.
---   alice   owns the project
---   bob     editor on the whole project
---   carol   viewer on the whole project
---   dave    editor on ONE song only
+--   alice   owns both songs
+--   bob     editor on the first song
+--   carol   viewer on the first song
 --   mallory no relationship at all
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'alice@example.com'),
   ('22222222-2222-2222-2222-222222222222', 'bob@example.com'),
   ('33333333-3333-3333-3333-333333333333', 'carol@example.com'),
-  ('44444444-4444-4444-4444-444444444444', 'dave@example.com'),
   ('55555555-5555-5555-5555-555555555555', 'mallory@example.com');
 
-insert into public.projects (id, owner_id, name) values
-  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-   '11111111-1111-1111-1111-111111111111',
-   'Debut EP');
-
-insert into public.songs (id, project_id, title) values
+insert into public.songs (id, owner_id, title, artist) values
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Opening Track'),
+   '11111111-1111-1111-1111-111111111111', 'Opening Track', 'Alice'),
   ('cccccccc-cccc-cccc-cccc-cccccccccccc',
-   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'The Slow One');
-
-insert into public.memberships (user_id, role, project_id) values
-  ('22222222-2222-2222-2222-222222222222', 'editor',
-   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
-  ('33333333-3333-3333-3333-333333333333', 'viewer',
-   'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+   '11111111-1111-1111-1111-111111111111', 'The Slow One', 'Alice');
 
 insert into public.memberships (user_id, role, song_id) values
-  ('44444444-4444-4444-4444-444444444444', 'editor',
+  ('22222222-2222-2222-2222-222222222222', 'editor',
+   'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
+  ('33333333-3333-3333-3333-333333333333', 'viewer',
    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
 
 -- ------------------------------------------------- the seeding trigger itself
@@ -113,24 +102,26 @@ set role authenticated;
 
 select test.login('11111111-1111-1111-1111-111111111111');
 
-select test.ok((select count(*) from public.projects) = 1, 'alice sees her project');
-select test.ok((select count(*) from public.songs) = 2, 'alice sees both songs');
+select test.ok((select count(*) from public.songs) = 2, 'alice sees both her songs');
 select test.ok(
   (select count(*) from public.phase_states) = 14,
   'alice sees the phases of both songs');
 
-update public.projects set name = 'Debut EP (renamed)'
-where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+update public.songs set title = 'Opening Track (renamed)'
+where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 select test.ok(
-  (select name from public.projects
-   where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') = 'Debut EP (renamed)',
-  'alice can rename her project');
+  (select title from public.songs
+   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb') = 'Opening Track (renamed)',
+  'alice can rename her song');
 
--- ----------------------------------------------------------- a project editor
+-- ------------------------------------------------------------------ an editor
 
 select test.login('22222222-2222-2222-2222-222222222222');
 
-select test.ok((select count(*) from public.songs) = 2, 'bob sees both songs');
+select test.ok((select count(*) from public.songs) = 1, 'bob sees only the song he was invited to');
+select test.ok(
+  (select count(*) from public.phase_states) = 7,
+  'bob sees only that song''s phases');
 
 update public.phase_states set status = 'done'
 where song_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' and phase = 'writing';
@@ -146,89 +137,59 @@ select test.ok(
      and phase = 'writing') = '22222222-2222-2222-2222-222222222222',
   'the change is stamped with who made it');
 
-insert into public.songs (project_id, title)
-values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Bob''s Addition');
-select test.ok((select count(*) from public.songs) = 3, 'bob can add a song');
-
 -- A delete the policy forbids is filtered out, not rejected: the statement
 -- succeeds and touches nothing. So the assertion is on what survived.
-delete from public.projects where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+delete from public.songs where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 select test.ok(
-  (select count(*) from public.projects
-   where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa') = 1,
-  'bob cannot delete the project');
+  (select count(*) from public.songs
+   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb') = 1,
+  'bob cannot delete a song he does not own');
 
--- ------------------------------------------------------------ a project viewer
+select test.denied(
+  $$insert into public.songs (owner_id, title)
+    values ('11111111-1111-1111-1111-111111111111', 'Bob''s Land Grab')$$,
+  'bob cannot create a song owned by someone else');
+
+-- ------------------------------------------------------------------ a viewer
 
 select test.login('33333333-3333-3333-3333-333333333333');
 
-select test.ok((select count(*) from public.songs) = 3, 'carol can read the songs');
+select test.ok((select count(*) from public.songs) = 1, 'carol can read the song');
 
 update public.phase_states set status = 'done'
-where song_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc' and phase = 'mixing';
+where song_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' and phase = 'mixing';
 select test.ok(
   (select status from public.phase_states
-   where song_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc'
+   where song_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
      and phase = 'mixing') = 'todo',
   'carol cannot change a phase');
 
 update public.songs set title = 'Hijacked'
-where id = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 select test.ok(
   (select title from public.songs
-   where id = 'cccccccc-cccc-cccc-cccc-cccccccccccc') = 'The Slow One',
+   where id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb') = 'Opening Track (renamed)',
   'carol cannot rename a song');
-
-select test.denied(
-  $$insert into public.songs (project_id, title)
-    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Carol''s Song')$$,
-  'carol cannot add a song');
-
--- -------------------------------------------- someone invited to a single song
-
-select test.login('44444444-4444-4444-4444-444444444444');
-
-select test.ok((select count(*) from public.songs) = 1, 'dave sees only his one song');
-select test.ok(
-  (select count(*) from public.projects) = 0,
-  'a song membership does not reveal the project');
-select test.ok(
-  (select count(*) from public.phase_states) = 7,
-  'dave sees only that song''s phases');
-
-update public.phase_states set status = 'doing'
-where song_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' and phase = 'tracking';
-select test.ok(
-  (select status from public.phase_states
-   where song_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
-     and phase = 'tracking') = 'doing',
-  'dave can edit the song he was invited to');
-
-select test.denied(
-  $$insert into public.songs (project_id, title)
-    values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Dave''s Song')$$,
-  'dave cannot add songs to the project');
 
 -- ---------------------------------------------------------------- a stranger
 
 select test.login('55555555-5555-5555-5555-555555555555');
 
-select test.ok((select count(*) from public.projects) = 0, 'mallory sees no projects');
 select test.ok((select count(*) from public.songs) = 0, 'mallory sees no songs');
 select test.ok((select count(*) from public.phase_states) = 0, 'mallory sees no phases');
 select test.ok((select count(*) from public.track_states) = 0, 'mallory sees no tracks');
 select test.ok((select count(*) from public.memberships) = 0, 'mallory sees no memberships');
 
 select test.denied(
-  $$insert into public.memberships (user_id, role, project_id)
+  $$insert into public.memberships (user_id, role, song_id)
     values ('55555555-5555-5555-5555-555555555555', 'owner',
-            'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')$$,
+            'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb')$$,
   'mallory cannot grant herself access');
 
 select test.denied(
-  $$insert into public.projects (owner_id, name)
-    values ('11111111-1111-1111-1111-111111111111', 'Stolen Project')$$,
-  'mallory cannot create a project owned by someone else');
+  $$insert into public.songs (owner_id, title)
+    values ('11111111-1111-1111-1111-111111111111', 'Stolen Song')$$,
+  'mallory cannot create a song owned by someone else');
 
 -- An unqualified update by a stranger: the statement runs, but RLS leaves it
 -- with nothing to touch. Proven from outside, where all rows are visible.
@@ -245,17 +206,17 @@ select test.ok(
 set role authenticated;
 select set_config('request.jwt.claim.sub', '', false);
 
-select test.ok((select count(*) from public.projects) = 0, 'an anonymous request sees nothing');
+select test.ok((select count(*) from public.songs) = 0, 'an anonymous request sees nothing');
 
 reset role;
 
 -- ------------------------------------------- reading back what you just wrote
 
 -- Everything above inserts its rows as the table owner, which walks straight
--- past RLS. That hid a real defect: `.insert().select()` in supabase-js sends
--- INSERT ... RETURNING, Postgres checks the returned row against the SELECT
--- policy, and a policy that has to look the row up by id cannot see it yet.
--- Creating a project failed with "new row violates row-level security policy"
+-- past RLS. That once hid a real defect: `.insert().select()` in supabase-js
+-- sends INSERT ... RETURNING, Postgres checks the returned row against the
+-- SELECT policy, and a policy that has to look the row up by id cannot see it
+-- yet. Creating a song failed with "new row violates row-level security policy"
 -- while the plain insert was allowed. So these run as ordinary users and keep
 -- the RETURNING.
 
@@ -264,47 +225,37 @@ set role authenticated;
 select test.login('11111111-1111-1111-1111-111111111111');
 
 with created as (
-  insert into public.projects (owner_id, name)
-  values ('11111111-1111-1111-1111-111111111111', 'Second EP')
-  returning id
-)
-select test.ok(
-  (select count(*) from created) = 1,
-  'alice can create a project and read it back');
-
-with created as (
-  insert into public.songs (project_id, title)
-  select id, 'Second EP Opener' from public.projects where name = 'Second EP'
+  insert into public.songs (owner_id, title, artist)
+  values ('11111111-1111-1111-1111-111111111111', 'Written Today', 'Alice')
   returning id
 )
 select test.ok(
   (select count(*) from created) = 1,
   'alice can create a song and read it back');
 
--- The same path for someone who holds the rights through a membership rather
--- than through ownership.
-select test.login('22222222-2222-2222-2222-222222222222');
-
+-- Inviting somebody is the same shape of write, and the same trap.
 with created as (
-  insert into public.songs (project_id, title)
-  values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Bob Reads It Back')
+  insert into public.memberships (user_id, role, song_id)
+  values ('22222222-2222-2222-2222-222222222222', 'viewer',
+          'cccccccc-cccc-cccc-cccc-cccccccccccc')
   returning id
 )
 select test.ok(
   (select count(*) from created) = 1,
-  'an editor can create a song and read it back');
+  'alice can invite somebody and read the membership back');
 
--- Reading a row back must not become a way in. Alice's second project is
--- nothing to do with bob, and a returned row is still a row.
+-- Reading a row back must not become a way in.
+select test.login('55555555-5555-5555-5555-555555555555');
+
 select test.ok(
-  (select count(*) from public.projects where name = 'Second EP') = 0,
-  'the wider select policy did not hand bob someone else''s project');
+  (select count(*) from public.songs where title = 'Written Today') = 0,
+  'the wider select policy did not hand mallory someone else''s song');
 
 select test.denied(
-  $$insert into public.projects (owner_id, name)
-    values ('11111111-1111-1111-1111-111111111111', 'Bob''s Land Grab')
+  $$insert into public.songs (owner_id, title)
+    values ('11111111-1111-1111-1111-111111111111', 'Stolen Song')
     returning id$$,
-  'RETURNING does not let bob create a project for someone else');
+  'RETURNING does not let mallory create a song for someone else');
 
 reset role;
 
