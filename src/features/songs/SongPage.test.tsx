@@ -220,7 +220,7 @@ describe('SongPage', () => {
     renderPage();
     await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
 
-    await user.click(screen.getByRole('button', { name: 'Rename Opening Track' }));
+    await user.click(screen.getByRole('button', { name: 'Edit Opening Track' }));
     const field = screen.getByLabelText('Song title');
     await user.clear(field);
     await user.type(field, 'Opening Track (take 2)');
@@ -237,7 +237,7 @@ describe('SongPage', () => {
     renderPage();
     await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
 
-    await user.click(screen.getByRole('button', { name: 'Rename Opening Track' }));
+    await user.click(screen.getByRole('button', { name: 'Edit Opening Track' }));
     await user.clear(screen.getByLabelText('Song title'));
 
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
@@ -249,7 +249,7 @@ describe('SongPage', () => {
     renderPage();
     await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
 
-    await user.click(screen.getByRole('button', { name: 'Rename Opening Track' }));
+    await user.click(screen.getByRole('button', { name: 'Edit Opening Track' }));
     await user.type(screen.getByLabelText('Song title'), ' again');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 

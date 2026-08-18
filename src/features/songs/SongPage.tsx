@@ -151,10 +151,12 @@ export function SongPage() {
       ) : (
         <div className="song-title">
           <h1>{song.title}</h1>
+          {/* Same as an artist heading: there the whole time for the keyboard,
+              visible once the pointer is on the title. */}
           <button
             type="button"
             className="song-title__edit"
-            aria-label={`Rename ${song.title}`}
+            aria-label={`Edit ${song.title}`}
             onClick={() => {
               setRenaming(true);
             }}
@@ -270,10 +272,25 @@ function RenameSong({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const field = useRef<HTMLInputElement>(null);
+  const form = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     field.current?.select();
   }, []);
+
+  // Clicking away closes the field without writing. A rename nobody confirmed
+  // is not a rename, and Save is right there.
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (busy) return;
+      if (form.current && !form.current.contains(event.target as Node)) onCancel();
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+    };
+  }, [busy, onCancel]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -292,7 +309,7 @@ function RenameSong({
   };
 
   return (
-    <form className="song-title-form" onSubmit={(event) => void submit(event)}>
+    <form className="song-title-form" ref={form} onSubmit={(event) => void submit(event)}>
       <label htmlFor="song-title" className="visually-hidden">
         Song title
       </label>

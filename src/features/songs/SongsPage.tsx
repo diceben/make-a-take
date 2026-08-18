@@ -162,6 +162,10 @@ export function SongsPage() {
               <h2 className={group.named ? 'artist__name' : 'artist__name artist__name--none'}>
                 {group.artist}
               </h2>
+              {/* Present the whole time — it has to be, or the keyboard could
+                  never reach it — but only visible for the heading being
+                  pointed at or focused. A button on every heading at once said
+                  "edit me" about the entire page. */}
               <button
                 type="button"
                 className="artist__edit"
@@ -225,6 +229,22 @@ function RenameArtist({
   const [value, setValue] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const form = useRef<HTMLFormElement>(null);
+
+  // Clicking away closes the field, and closes it without writing: a rename
+  // nobody confirmed is not a rename. Save is right there, and the name on the
+  // page is unchanged until it is pressed.
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (busy) return;
+      if (form.current && !form.current.contains(event.target as Node)) onCancel();
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+    };
+  }, [busy, onCancel]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -241,7 +261,7 @@ function RenameArtist({
   };
 
   return (
-    <form className="rename-artist" onSubmit={(event) => void submit(event)}>
+    <form className="rename-artist" ref={form} onSubmit={(event) => void submit(event)}>
       <ArtistField
         label="Artist name"
         placeholder="Artist (leave empty for none)"
@@ -281,10 +301,59 @@ function AddSong({
   known: string[];
   onSubmit: (title: string, artist: string) => Promise<void>;
 }) {
+  const [open, setOpen] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        ref={opener}
+        className="add-song__open"
+        onClick={() => {
+          setOpen(true);
+        }}
+      >
+        Add new song
+      </button>
+    );
+  }
+
+  return (
+    <AddSongForm
+      known={known}
+      onSubmit={onSubmit}
+      onClose={() => {
+        setOpen(false);
+        // Focus goes back where it came from, not to the top of the page.
+        window.requestAnimationFrame(() => opener.current?.focus());
+      }}
+    />
+  );
+}
+
+/**
+ * Split out so it mounts fresh each time the form is opened — that is what puts
+ * the cursor in the title field without an effect watching a boolean.
+ */
+function AddSongForm({
+  known,
+  onSubmit,
+  onClose,
+}: {
+  known: string[];
+  onSubmit: (title: string, artist: string) => Promise<void>;
+  onClose: () => void;
+}) {
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const field = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    field.current?.focus();
+  }, []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -295,8 +364,11 @@ function AddSong({
     setError(null);
     try {
       await onSubmit(trimmed, artist);
+      // The form stays open with the fields cleared. A record is a list of
+      // songs, and closing after each one would mean reopening for the next.
       setTitle('');
       setArtist('');
+      field.current?.focus();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'That did not work.');
     } finally {
@@ -309,11 +381,15 @@ function AddSong({
       <label className="add-song__label">
         <span className="visually-hidden">Song title</span>
         <input
+          ref={field}
           type="text"
           placeholder="Song title"
           value={title}
           onChange={(event) => {
             setTitle(event.target.value);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && !busy) onClose();
           }}
         />
       </label>
@@ -323,9 +399,17 @@ function AddSong({
         value={artist}
         known={known}
         onChange={setArtist}
+        // Escape here belongs to the suggestions first; the field only passes
+        // it on once they are out of the way.
+        onEscape={() => {
+          if (!busy) onClose();
+        }}
       />
       <button type="submit" disabled={busy || title.trim() === ''}>
         {busy ? 'Saving…' : 'Add song'}
+      </button>
+      <button type="button" className="add-song__close" onClick={onClose} disabled={busy}>
+        Done
       </button>
       {error && (
         <p className="error" role="alert">
