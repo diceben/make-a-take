@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Project, SongWithSteps, StepStatus } from './model';
+import type { SongWithSteps, StepStatus } from './model';
 
 /**
  * Every read and write against the database goes through here, so there is one
@@ -12,7 +12,7 @@ import type { Project, SongWithSteps, StepStatus } from './model';
  */
 
 const SONG_COLUMNS = `
-  id, project_id, title, artist, deadline, notes, position,
+  id, title, artist, deadline, notes, position,
   phase_states (id, song_id, phase, status, note),
   track_states (id, song_id, track, status, note)
 `;
@@ -22,28 +22,6 @@ function unwrap<T>({ data, error }: { data: T | null; error: { message: string }
   if (error) throw new Error(error.message);
   if (data === null) throw new Error('The database returned nothing.');
   return data;
-}
-
-export async function listProjects(client: SupabaseClient): Promise<Project[]> {
-  return unwrap(
-    await client
-      .from('projects')
-      .select('id, name, artist, deadline')
-      .order('created_at', { ascending: true }),
-  );
-}
-
-export async function createProject(
-  client: SupabaseClient,
-  input: { name: string; ownerId: string },
-): Promise<Project> {
-  return unwrap(
-    await client
-      .from('projects')
-      .insert({ name: input.name.trim(), owner_id: input.ownerId })
-      .select('id, name, artist, deadline')
-      .single(),
-  );
 }
 
 export async function listSongs(client: SupabaseClient): Promise<SongWithSteps[]> {
@@ -62,12 +40,18 @@ export async function getSong(client: SupabaseClient, id: string): Promise<SongW
 
 export async function createSong(
   client: SupabaseClient,
-  input: { projectId: string; title: string },
+  input: { title: string; artist: string; ownerId: string },
 ): Promise<SongWithSteps> {
+  const artist = input.artist.trim();
   const created = unwrap<{ id: string }>(
     await client
       .from('songs')
-      .insert({ project_id: input.projectId, title: input.title.trim() })
+      .insert({
+        title: input.title.trim(),
+        // No artist is null, not an empty string: one absence, one value.
+        artist: artist === '' ? null : artist,
+        owner_id: input.ownerId,
+      })
       .select('id')
       .single(),
   );

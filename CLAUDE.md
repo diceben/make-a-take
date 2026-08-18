@@ -35,8 +35,17 @@ Struktur **nie** im Supabase-Dashboard zusammenklicken — siehe
 
 ## Das Datenmodell
 
-Projekt (Album/EP) → Song → 7 feste Phasen. Spuren hängen ausschließlich in der
-Tracking-Phase.
+Song → 7 feste Phasen. Spuren hängen ausschließlich in der Tracking-Phase.
+
+**Der Song ist die Einheit**, es gibt nichts darüber. Ein Song gehört einer
+Person (`owner_id`) und nennt optional eine `artist`-Zeichenkette; die Liste
+gruppiert danach. Ein Artist ist also ein Wort auf dem Song, keine eigene
+Tabelle — es gibt nichts, was aus dem Tritt geraten könnte. Songs ohne Artist
+sammeln sich am Ende unter einer eigenen Überschrift.
+
+Es gab früher eine Projekt-Ebene (Album/EP) darüber. Die ist weg
+(`20260818090000_songs_stand_alone.sql`) — sie zwang dazu, erst eine
+Veröffentlichung zu erfinden, bevor man einen Song aufschreiben konnte.
 
 - **Phasen** (fest, für jeden Song gleich): Writing, Arrangement, Pre-Production,
   Tracking, Editing, Mixing, Mastering.

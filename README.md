@@ -13,8 +13,12 @@ drums, bass, guitars, keys, lead vocals, backing vocals — carries its own stat
 to do, in progress, needs review, or done. Overall progress is weighted, so
 finishing the mix moves the bar further than picking a title.
 
-**Status: early.** The app is being built in stages. Accounts and the database
-schema are in place; projects and songs arrive next.
+A song stands on its own. Write down a title, optionally name the artist it is
+for, and it is there — the list groups by that name, and the songs that name
+nobody wait at the end.
+
+**Status: early.** The app is being built in stages. Accounts, the database
+schema and the song views are in place; sharing arrives next.
 
 ## Install
 

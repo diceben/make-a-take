@@ -31,10 +31,10 @@ The same job runs in CI against a `postgres:16` service container.
 
 ## What the tests cover
 
-`tests/rls.test.sql` exercises row level security from five points of view: the
-project owner, a project editor, a project viewer, someone invited to a single
-song, and a complete stranger. It asserts the denials, not just the permissions
-— an owner clicking around never proves that anyone else is locked out.
+`tests/rls.test.sql` exercises row level security from four points of view: the
+song's owner, an editor invited to it, a viewer invited to it, and a complete
+stranger. It asserts the denials, not just the permissions — an owner clicking
+around never proves that anyone else is locked out.
 
 Two files exist only for local runs and are never applied to Supabase:
 
@@ -45,13 +45,15 @@ Two files exist only for local runs and are never applied to Supabase:
 
 ## Notes on the design
 
-- **Access control lives in two functions**, `has_project_access()` and
-  `has_song_access()`. Every policy calls one of them; no policy reasons about
-  membership on its own. Both are `security definer` so consulting memberships
-  does not recurse into the policies on the memberships table.
-- **A membership targets either a project or a single song**, never both — a
-  check constraint enforces that. Song-level access deliberately does not reveal
-  the project it belongs to.
+- **Access control lives in one function**, `has_song_access()`. Every policy
+  calls it; no policy reasons about membership on its own. It is
+  `security definer` so consulting memberships does not recurse into the
+  policies on the memberships table.
+- **A song is the unit.** It carries its own `owner_id` and an optional `artist`
+  string. The artist is a word on the song, not a row, so there is nothing to
+  keep in step and nothing extra to grant access to.
+- **A membership targets one song.** Sharing is per song and nothing above it
+  leaks, because there is nothing above it.
 - **Phase and track rows are created by a trigger** when a song is inserted, so
   every song always has exactly seven phases and six tracks. There is no insert
   or delete policy on those tables: only the trigger creates them, and they die
@@ -60,7 +62,7 @@ Two files exist only for local runs and are never applied to Supabase:
   `RETURNING` that `.insert().select()` sends makes Postgres check the new row
   against the select policy while that row is still invisible to a lookup, so a
   policy that asks an access function to fetch the row _by id_ refuses it. The
-  select policies on `projects` and `songs` therefore read `owner_id` and
-  `project_id` straight off the row and only then fall back to a lookup. Both
-  additions are redundant for rows that already exist; they matter only for the
-  one being written. The tests cover this by keeping the `RETURNING`.
+  select policy on `songs` therefore reads `owner_id` straight off the row and
+  only then falls back to a lookup. That is redundant for rows that already
+  exist; it matters only for the one being written. The tests cover this by
+  keeping the `RETURNING`.
