@@ -249,5 +249,64 @@ select test.ok((select count(*) from public.projects) = 0, 'an anonymous request
 
 reset role;
 
+-- ------------------------------------------- reading back what you just wrote
+
+-- Everything above inserts its rows as the table owner, which walks straight
+-- past RLS. That hid a real defect: `.insert().select()` in supabase-js sends
+-- INSERT ... RETURNING, Postgres checks the returned row against the SELECT
+-- policy, and a policy that has to look the row up by id cannot see it yet.
+-- Creating a project failed with "new row violates row-level security policy"
+-- while the plain insert was allowed. So these run as ordinary users and keep
+-- the RETURNING.
+
+set role authenticated;
+
+select test.login('11111111-1111-1111-1111-111111111111');
+
+with created as (
+  insert into public.projects (owner_id, name)
+  values ('11111111-1111-1111-1111-111111111111', 'Second EP')
+  returning id
+)
+select test.ok(
+  (select count(*) from created) = 1,
+  'alice can create a project and read it back');
+
+with created as (
+  insert into public.songs (project_id, title)
+  select id, 'Second EP Opener' from public.projects where name = 'Second EP'
+  returning id
+)
+select test.ok(
+  (select count(*) from created) = 1,
+  'alice can create a song and read it back');
+
+-- The same path for someone who holds the rights through a membership rather
+-- than through ownership.
+select test.login('22222222-2222-2222-2222-222222222222');
+
+with created as (
+  insert into public.songs (project_id, title)
+  values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Bob Reads It Back')
+  returning id
+)
+select test.ok(
+  (select count(*) from created) = 1,
+  'an editor can create a song and read it back');
+
+-- Reading a row back must not become a way in. Alice's second project is
+-- nothing to do with bob, and a returned row is still a row.
+select test.ok(
+  (select count(*) from public.projects where name = 'Second EP') = 0,
+  'the wider select policy did not hand bob someone else''s project');
+
+select test.denied(
+  $$insert into public.projects (owner_id, name)
+    values ('11111111-1111-1111-1111-111111111111', 'Bob''s Land Grab')
+    returning id$$,
+  'RETURNING does not let bob create a project for someone else');
+
+reset role;
+
 \echo ''
 \echo 'All RLS tests passed.'
