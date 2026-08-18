@@ -1,20 +1,25 @@
 import { ThemeToggle } from './ThemeToggle';
+import { isConfigured } from './lib/supabase';
+import { AuthProvider } from './features/auth/AuthProvider';
+import { useAuth } from './features/auth/auth-context';
+import { SignInForm } from './features/auth/SignInForm';
+import { SongList } from './features/songs/SongList';
 import './App.css';
 
-/**
- * Placeholder page for stage 0. It exists so the toolchain, the design tokens
- * and the accessibility checks all have something real to work on — the song
- * list replaces it in stage 3.
- */
-
-const STATUSES = [
-  { key: 'todo', symbol: '○', label: 'To do' },
-  { key: 'doing', symbol: '◐', label: 'In progress' },
-  { key: 'review', symbol: '◑', label: 'Needs review' },
-  { key: 'done', symbol: '●', label: 'Done' },
-] as const;
-
 export function App() {
+  if (!isConfigured) return <ConfigurationNotice />;
+
+  return (
+    <AuthProvider>
+      <Shell />
+    </AuthProvider>
+  );
+}
+
+/** Exported for tests, which supply their own Supabase client to AuthProvider. */
+export function Shell() {
+  const auth = useAuth();
+
   return (
     <>
       <a className="skip-link" href="#main">
@@ -23,26 +28,42 @@ export function App() {
 
       <header className="app-header">
         <span className="app-header__name">Make a Take</span>
-        <ThemeToggle />
+        <div className="app-header__actions">
+          {auth.status === 'signed-in' && (
+            <button
+              type="button"
+              className="app-header__signout"
+              onClick={() => void auth.signOut()}
+            >
+              Sign out
+            </button>
+          )}
+          <ThemeToggle />
+        </div>
       </header>
 
       <main id="main" className="app-main">
-        <h1>Track every recording step of a song.</h1>
-        <p className="app-lead">
-          From writing to master — one page that tells you where each song actually stands.
-        </p>
-
-        <h2 className="app-section-title">The four states</h2>
-        <ul className="status-legend">
-          {STATUSES.map((status) => (
-            <li key={status.key} className="status-legend__item">
-              <span className="status" data-status={status.key}>
-                <span aria-hidden="true">{status.symbol}</span> {status.label}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {auth.status === 'loading' && <p role="status">Loading…</p>}
+        {auth.status === 'signed-out' && <SignInForm />}
+        {auth.status === 'signed-in' && <SongList />}
       </main>
     </>
+  );
+}
+
+/**
+ * A deployment without the two environment variables cannot do anything useful.
+ * Saying so plainly beats a blank page or a stack trace in the console.
+ */
+function ConfigurationNotice() {
+  return (
+    <main id="main" className="app-main">
+      <h1>Make a Take is not configured</h1>
+      <p className="app-lead">
+        Copy <code>.env.example</code> to <code>.env.local</code> and fill in{' '}
+        <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_PUBLISHABLE_KEY</code>, then restart
+        the dev server.
+      </p>
+    </main>
   );
 }
