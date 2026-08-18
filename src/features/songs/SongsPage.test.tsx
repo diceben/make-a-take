@@ -147,6 +147,75 @@ describe('SongsPage', () => {
     });
   });
 
+  it('renames an artist across every song that carries it', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.setSongsArtist).mockResolvedValue(undefined);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.click(screen.getByRole('button', { name: 'Edit Sarah Kane' }));
+    const field = screen.getByLabelText('Artist name');
+    await user.clear(field);
+    await user.type(field, 'Sarah Kane Trio');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('heading', { name: 'Sarah Kane Trio' })).toBeInTheDocument();
+    expect(data.setSongsArtist).toHaveBeenCalledWith(auth.client, ['s1', 's2'], 'Sarah Kane Trio');
+  });
+
+  it('drops the songs into the group at the end when the name is emptied', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.setSongsArtist).mockResolvedValue(undefined);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.click(screen.getByRole('button', { name: 'Edit Sarah Kane' }));
+    await user.clear(screen.getByLabelText('Artist name'));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('heading', { name: 'No artist yet' })).toBeInTheDocument();
+    expect(data.setSongsArtist).toHaveBeenCalledWith(auth.client, ['s1', 's2'], null);
+  });
+
+  it('leaves the name alone when the edit is cancelled', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.click(screen.getByRole('button', { name: 'Edit Sarah Kane' }));
+    await user.clear(screen.getByLabelText('Artist name'));
+    await user.type(screen.getByLabelText('Artist name'), 'Something Else');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByRole('heading', { name: 'Sarah Kane' })).toBeInTheDocument();
+    expect(data.setSongsArtist).not.toHaveBeenCalled();
+  });
+
+  it('backs out of a rename on Escape', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.click(screen.getByRole('button', { name: 'Edit Sarah Kane' }));
+    await user.type(screen.getByLabelText('Artist name'), ' Trio{Escape}');
+
+    expect(screen.getByRole('heading', { name: 'Sarah Kane' })).toBeInTheDocument();
+    expect(data.setSongsArtist).not.toHaveBeenCalled();
+  });
+
+  it('reports a rename the database refused', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.setSongsArtist).mockRejectedValue(new Error('permission denied'));
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.click(screen.getByRole('button', { name: 'Edit Sarah Kane' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('permission denied');
+    expect(screen.getByLabelText('Artist name')).toBeInTheDocument();
+  });
+
   it('will not submit an empty title', async () => {
     renderPage();
     await screen.findByRole('heading', { name: 'Sarah Kane' });
