@@ -51,6 +51,11 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+/** The fields are behind a button now, so every test that types opens them. */
+const openAddSong = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(await screen.findByRole('button', { name: 'Add new song' }));
+};
+
 beforeEach(() => {
   vi.mocked(data.listSongs).mockResolvedValue([
     song('s1', 'Opening Track', 'Sarah Kane', { writing: 'done', arrangement: 'done' }),
@@ -117,6 +122,7 @@ describe('SongsPage', () => {
     vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Third Song', 'Sarah Kane'));
     renderPage();
     await screen.findByRole('heading', { name: 'Sarah Kane' });
+    await openAddSong(user);
 
     await user.type(screen.getByPlaceholderText('Song title'), 'Third Song');
     await user.type(screen.getByPlaceholderText('Artist (optional)'), 'Sarah Kane');
@@ -135,6 +141,7 @@ describe('SongsPage', () => {
     vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Nameless', null));
     renderPage();
     await screen.findByRole('heading', { name: 'Sarah Kane' });
+    await openAddSong(user);
 
     await user.type(screen.getByPlaceholderText('Song title'), 'Nameless');
     await user.click(screen.getByRole('button', { name: 'Add song' }));
@@ -228,6 +235,7 @@ describe('SongsPage', () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole('heading', { name: 'Sarah Kane' });
+    await openAddSong(user);
 
     await user.type(screen.getByPlaceholderText('Artist (optional)'), 'srh');
 
@@ -240,6 +248,7 @@ describe('SongsPage', () => {
     vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Third Song', 'Sarah Kane'));
     renderPage();
     await screen.findByRole('heading', { name: 'Sarah Kane' });
+    await openAddSong(user);
 
     await user.type(screen.getByPlaceholderText('Song title'), 'Third Song');
     await user.type(screen.getByPlaceholderText('Artist (optional)'), 'sarah kan');
@@ -258,6 +267,7 @@ describe('SongsPage', () => {
     vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Third Song', 'Sarah Kane Trio'));
     renderPage();
     await screen.findByRole('heading', { name: 'Sarah Kane' });
+    await openAddSong(user);
 
     await user.type(screen.getByPlaceholderText('Song title'), 'Third Song');
     await user.type(screen.getByPlaceholderText('Artist (optional)'), 'Sarah Kane Trio');
@@ -278,6 +288,7 @@ describe('SongsPage', () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole('heading', { name: 'Sarah Kane' });
+    await openAddSong(user);
 
     await user.type(screen.getByPlaceholderText('Artist (optional)'), 'Sarah Kane');
 
@@ -290,6 +301,7 @@ describe('SongsPage', () => {
     vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Third Song', 'Sarah Kane'));
     renderPage();
     await screen.findByRole('heading', { name: 'Sarah Kane' });
+    await openAddSong(user);
 
     await user.type(screen.getByPlaceholderText('Song title'), 'Third Song');
     await user.type(screen.getByPlaceholderText('Artist (optional)'), 'sar');
@@ -305,6 +317,7 @@ describe('SongsPage', () => {
     vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Third Song', 'Sarah Kane'));
     renderPage();
     await screen.findByRole('heading', { name: 'Sarah Kane' });
+    await openAddSong(user);
 
     await user.type(screen.getByPlaceholderText('Song title'), 'Third Song');
     // Typed, never picked from the list.
@@ -319,9 +332,55 @@ describe('SongsPage', () => {
   });
 
   it('will not submit an empty title', async () => {
+    const user = userEvent.setup();
     renderPage();
     await screen.findByRole('heading', { name: 'Sarah Kane' });
+    await openAddSong(user);
+
     expect(screen.getByRole('button', { name: 'Add song' })).toBeDisabled();
+  });
+
+  it('keeps the fields out of the way until they are asked for', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    expect(screen.queryByPlaceholderText('Song title')).toBeNull();
+
+    await openAddSong(user);
+    expect(screen.getByPlaceholderText('Song title')).toHaveFocus();
+
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+    expect(screen.queryByPlaceholderText('Song title')).toBeNull();
+  });
+
+  it('stays open after a song is added, ready for the next one', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.createSong).mockResolvedValue(song('s3', 'Third Song', 'Sarah Kane'));
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+    await openAddSong(user);
+
+    await user.type(screen.getByPlaceholderText('Song title'), 'Third Song');
+    await user.click(screen.getByRole('button', { name: 'Add song' }));
+
+    await screen.findByRole('link', { name: 'Third Song' });
+    const field = screen.getByPlaceholderText('Song title');
+    expect(field).toHaveValue('');
+    expect(field).toHaveFocus();
+  });
+
+  it('closes the rename when the click lands somewhere else, without saving', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.click(screen.getByRole('button', { name: 'Edit Sarah Kane' }));
+    await user.type(screen.getByLabelText('Artist name'), ' Trio');
+    await user.click(screen.getByRole('heading', { level: 1, name: 'Your songs' }));
+
+    expect(screen.getByRole('heading', { name: 'Sarah Kane' })).toBeInTheDocument();
+    expect(data.setSongsArtist).not.toHaveBeenCalled();
   });
 
   it('reports a failed load and offers to retry', async () => {
@@ -342,6 +401,7 @@ describe('SongsPage', () => {
     vi.mocked(data.createSong).mockRejectedValue(new Error('permission denied'));
     renderPage();
     await screen.findByRole('heading', { name: 'Sarah Kane' });
+    await openAddSong(user);
 
     const field = screen.getByPlaceholderText('Song title');
     await user.type(field, 'Doomed Song');

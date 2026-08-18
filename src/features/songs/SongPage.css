@@ -27,11 +27,24 @@
   background: var(--surface);
   color: var(--text-muted);
   font-size: var(--text-sm);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.song-title:hover .song-title__edit,
+.song-title__edit:focus-visible {
+  opacity: 1;
 }
 
 .song-title__edit:hover {
   background: var(--surface-raised);
   color: var(--text);
+}
+
+@media (hover: none) {
+  .song-title__edit {
+    opacity: 1;
+  }
 }
 
 .song-title-form {
