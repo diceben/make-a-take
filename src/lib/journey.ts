@@ -29,6 +29,28 @@ export const PHASE_LABELS: Record<PhaseKey, string> = {
   master: 'Master',
 };
 
+/** Two or three words under the name, so the sidebar says what a phase is. */
+export const PHASE_SUBTITLES: Record<PhaseKey, string> = {
+  capture: 'Idea',
+  write: 'Lyrics, melody',
+  produce: 'Arrangement',
+  track: 'Record',
+  edit: 'Comping, clean-up',
+  mix: 'Balance, glue',
+  master: 'Polish',
+};
+
+/** One sentence at the head of the phase, saying what it is for. */
+export const PHASE_DESCRIPTIONS: Record<PhaseKey, string> = {
+  capture: 'Catch it before it gets away.',
+  write: 'Find the words and the tune.',
+  produce: 'Decide what the song is made of.',
+  track: 'Play it, and keep the takes worth keeping.',
+  edit: 'Tidy up what was played.',
+  mix: 'Shape, balance and bring it all together.',
+  master: 'The last pass before it leaves the room.',
+};
+
 /** In the order work moves through them. Nothing may treat them as numbers. */
 export const STATES = [
   'not_touched',
@@ -90,7 +112,10 @@ export type Decision = {
 export type Round = {
   id: string;
   number: number;
+  opened_at: string;
   closed_at: string | null;
+  /** Why this pass was started. Null on the first one — it needed no reason. */
+  reopen_reason: string | null;
   decisions: Decision[];
 };
 
@@ -185,6 +210,35 @@ export function songTotals(phases: Phase[]): { locked: number; reopened: number 
   };
 }
 
+/** Settled: good enough to play to somebody, or finished. */
+export function isSettled(decision: Decision): boolean {
+  return !isOpen(decision);
+}
+
+/**
+ * How many judgements this song has taken, per phase, over every round it has
+ * been through — not only the round being worked on.
+ *
+ * Going back is counted, on purpose. A second pass through the mix is work that
+ * happened, and a figure that quietly forgot it would make reopening look like
+ * losing ground. The plan's word for this is credits: what you have done, not
+ * how far along you are.
+ */
+export function creditsFor(phases: Phase[]): { key: PhaseKey; made: number }[] {
+  return phases.map((phase) => ({
+    key: phase.key,
+    made: phase.rounds.reduce(
+      (sum, round) =>
+        sum + round.decisions.filter((decision) => decision.state !== 'not_touched').length,
+      0,
+    ),
+  }));
+}
+
+export function totalMade(phases: Phase[]): number {
+  return creditsFor(phases).reduce((sum, entry) => sum + entry.made, 0);
+}
+
 /**
  * What is still open, oldest first, for the line at the top of the song.
  *
@@ -262,6 +316,38 @@ export function markersFor(phase: Phase, notes: Note[]): Marker[] {
 const SESSION_GAP_MS = 45 * 60 * 1000;
 
 /**
+ * Judgements grouped into the sittings they were made in, oldest first.
+ *
+ * A sitting is a run of judgements with no gap longer than 45 minutes. That is a
+ * guess dressed as a constant: it is long enough to survive making coffee and
+ * short enough that an evening and the next morning do not merge. Nothing is
+ * withheld or warned about on the strength of it — it only ever adds a sentence
+ * to something already on screen, so being wrong about it costs a sentence.
+ */
+export function sittings(stamps: string[]): number[][] {
+  const ordered = stamps.map((at) => Date.parse(at)).sort((a, b) => a - b);
+
+  const groups: number[][] = [];
+  for (const stamp of ordered) {
+    const current = groups.at(-1);
+    const previous = current?.at(-1);
+    if (current === undefined || (previous !== undefined && stamp - previous > SESSION_GAP_MS)) {
+      groups.push([stamp]);
+    } else {
+      current.push(stamp);
+    }
+  }
+  return groups;
+}
+
+/** Every judgement stamp on these decisions, in no particular order. */
+export function stampsOf(decisions: Decision[]): string[] {
+  return decisions
+    .map((decision) => decision.state_set_at)
+    .filter((at): at is string => at !== null);
+}
+
+/**
  * How many other judgements were set in the same stretch of work as this one.
  *
  * Shown in the picker as a plain figure, never as a warning: five judgements in
@@ -272,24 +358,7 @@ export function sameSessionCount(all: Decision[], decision: Decision): number {
   const anchor = decision.state_set_at;
   if (anchor === null) return 0;
 
-  const stamps = all
-    .map((candidate) => candidate.state_set_at)
-    .filter((at): at is string => at !== null)
-    .map((at) => Date.parse(at))
-    .sort((a, b) => a - b);
-
   const target = Date.parse(anchor);
-  const groups: number[][] = [];
-  for (const stamp of stamps) {
-    const current = groups.at(-1);
-    const previous = current?.at(-1);
-    if (current === undefined || (previous !== undefined && stamp - previous > SESSION_GAP_MS)) {
-      groups.push([stamp]);
-    } else {
-      current.push(stamp);
-    }
-  }
-
-  const group = groups.find((candidate) => candidate.includes(target));
+  const group = sittings(stampsOf(all)).find((candidate) => candidate.includes(target));
   return group === undefined ? 0 : group.length - 1;
 }

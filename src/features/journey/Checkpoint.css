@@ -1,0 +1,173 @@
+/* The card that offers the check. It is the one raised surface in the right
+   column, because it is the only thing there that does something. */
+.checkpoint {
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--edge-dir);
+  border-radius: var(--radius-lg);
+  background: var(--surface-alt);
+}
+
+.checkpoint__badge {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--button);
+  color: var(--accent-soft);
+}
+
+.checkpoint__icon {
+  width: 20px;
+  height: 20px;
+}
+
+.checkpoint__heading {
+  margin-top: var(--space-4);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.checkpoint__summary {
+  margin-top: var(--space-3);
+  color: var(--text-second);
+  font-size: var(--text-sm);
+}
+
+.checkpoint__lead {
+  margin-top: var(--space-3);
+  color: var(--text-second);
+  font-size: var(--text-sm);
+}
+
+.checkpoint__list {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checkpoint__list li {
+  position: relative;
+  padding-left: var(--space-4);
+  color: var(--text);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+
+/* A dot in the colour of something unsettled — decorative, since the words
+   beside it already say what it is. */
+.checkpoint__list li::before {
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--state-notq);
+  content: '';
+}
+
+.checkpoint__rest {
+  color: var(--text-muted);
+}
+
+.checkpoint__rest::before {
+  background: var(--state-none);
+}
+
+.checkpoint__enter {
+  display: block;
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border-alt);
+  border-radius: var(--radius-sm);
+  background: var(--button);
+  color: var(--text);
+  font-size: var(--text-sm);
+  text-align: center;
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+
+.checkpoint__enter:hover {
+  background: var(--edge-dir);
+}
+
+/* ------------------------------------------------- the band at the bottom */
+
+/* The same offer where you arrive at it by working down the list. */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding: var(--space-4) var(--space-6);
+  border: var(--border-width) solid var(--edge-dir);
+  border-radius: var(--radius-lg);
+  background: var(--surface-alt);
+}
+
+.banner__badge {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--button);
+  color: var(--accent-soft);
+}
+
+.banner__icon {
+  width: 22px;
+  height: 22px;
+}
+
+.banner__words {
+  flex: 1;
+  min-width: 0;
+}
+
+.banner__heading {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.banner__sub {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--text-second);
+  font-size: var(--text-sm);
+}
+
+.banner__enter {
+  flex: none;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--border-alt);
+  border-radius: var(--radius-sm);
+  background: var(--button);
+  color: var(--text);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+
+.banner__enter:hover {
+  background: var(--edge-dir);
+}
+
+@media (max-width: 40rem) {
+  .banner {
+    flex-wrap: wrap;
+  }
+
+  .banner__enter {
+    width: 100%;
+    text-align: center;
+  }
+}

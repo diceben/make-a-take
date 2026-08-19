@@ -55,7 +55,13 @@
   color: var(--accent-soft);
 }
 
+.journey__words {
+  min-width: 0;
+  flex: 1;
+}
+
 .journey__name {
+  display: block;
   color: var(--text-second);
   font-size: var(--text-sm);
 }
@@ -63,6 +69,14 @@
 .journey__row--selected .journey__name {
   color: var(--text);
   font-weight: var(--weight-medium);
+}
+
+/* What the phase is, under what it is called. Small and quiet: it is there to
+   be read once, when the word above it is not enough. */
+.journey__sub {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
 }
 
 /* Where the work actually is. Separate from the selected row on purpose:

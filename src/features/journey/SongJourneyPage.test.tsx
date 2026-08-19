@@ -36,7 +36,16 @@ const phase = (key: (typeof PHASE_KEYS)[number], decisions: Decision[] = [], rou
   key,
   position: PHASE_KEYS.indexOf(key) + 1,
   current_round: round,
-  rounds: [{ id: `round-${key}`, number: round, closed_at: null, decisions }],
+  rounds: [
+    {
+      id: `round-${key}`,
+      number: round,
+      opened_at: '2026-08-01T10:00:00Z',
+      closed_at: null,
+      reopen_reason: null,
+      decisions,
+    },
+  ],
 });
 
 const auth = {
@@ -104,10 +113,20 @@ beforeEach(() => {
 });
 
 describe('the song journey', () => {
-  it('shows no percentage anywhere', async () => {
+  it('puts no percentage on the song — only on the phase in hand', async () => {
     renderAt();
     await screen.findByRole('heading', { level: 1, name: 'Midnight Drive' });
-    expect(document.body.textContent).not.toMatch(/\d+\s?%/);
+
+    // The rule that survived the rebuild: nothing spanning the whole song may be
+    // a percentage, because it would be adding up things that are not
+    // comparable. The head, the journey and the right column are all song-wide.
+    expect(document.querySelector('.journey-page__head')?.textContent).not.toMatch(/%/);
+    expect(screen.getByRole('navigation', { name: 'Song journey' }).textContent).not.toMatch(/%/);
+    expect(document.querySelector('.journey-page__aside')?.textContent).not.toMatch(/%/);
+
+    // The one percentage on the page is over this phase's own decisions, where
+    // the things being added up are the same kind of thing.
+    expect(document.querySelector('.meter')?.textContent).toMatch(/0 \/ 2 decisions settled/);
   });
 
   it('opens where the last judgement was made, not at the first unfinished phase', async () => {
@@ -148,17 +167,92 @@ describe('the song journey', () => {
     expect(screen.queryByText('Snare needs another round')).toBeNull();
   });
 
-  it('says which round the phase is on, and counts what is locked', async () => {
+  it('says which round the phase is on, and what it is made of', async () => {
     renderAt();
     await screen.findByRole('heading', { level: 2, name: 'Mix' });
+
     expect(screen.getByText(/round 2/)).toBeInTheDocument();
-    expect(screen.getByText(/0 of 2 locked/)).toBeInTheDocument();
+    expect(screen.getByText('/ 2 decisions settled')).toBeInTheDocument();
+    // Settled and locked are different questions, so they never share a figure.
+    expect(screen.getByText('0 of 2 decisions locked.')).toBeInTheDocument();
+  });
+
+  it('says what a phase is for, not only what it is called', async () => {
+    renderAt();
+    await screen.findByRole('heading', { level: 2, name: 'Mix' });
+
+    expect(screen.getByText('Shape, balance and bring it all together.')).toBeInTheDocument();
+    // The sidebar carries the short form of the same thing.
+    const journey = screen.getByRole('navigation', { name: 'Song journey' });
+    expect(within(journey).getByText('Balance, glue')).toBeInTheDocument();
   });
 
   it('counts the song without a percentage', async () => {
     renderAt();
     await screen.findByRole('heading', { level: 1, name: 'Midnight Drive' });
     expect(screen.getByText(/1 decisions locked · 1 reopened/)).toBeInTheDocument();
+  });
+});
+
+describe('the checkpoint on the phase', () => {
+  it('offers the check and names what is still open', async () => {
+    renderAt();
+    await screen.findByRole('heading', { level: 2, name: 'Mix' });
+
+    const card = screen.getByRole('region', { name: 'Mix checkpoint' });
+    expect(within(card).getByText('0 of 2 decisions locked.')).toBeInTheDocument();
+    expect(within(card).getByText('2 things still need attention:')).toBeInTheDocument();
+    expect(within(card).getByText('Vocal sits in mix')).toBeInTheDocument();
+    expect(within(card).getByRole('link', { name: /Enter mix check/ })).toHaveAttribute(
+      'href',
+      '/songs/s1/mix/check',
+    );
+  });
+
+  it('offers nothing to check in a phase that has no decisions', async () => {
+    renderAt('/songs/s1/master');
+    await screen.findByRole('heading', { level: 2, name: 'Master' });
+
+    expect(screen.queryByRole('region', { name: 'Master checkpoint' })).toBeNull();
+    expect(screen.queryByRole('link', { name: /check/ })).toBeNull();
+  });
+
+  it('counts the judgements the song has taken, over every round', async () => {
+    renderAt();
+    await screen.findByRole('heading', { level: 2, name: 'Mix' });
+
+    const credits = screen.getByRole('region', { name: 'Production credits' });
+    // Write, track and the mix's one judged decision. Nothing untouched counts.
+    expect(within(credits).getByText('3')).toBeInTheDocument();
+    expect(within(credits).queryByText('Capture')).toBeNull();
+  });
+});
+
+describe('the filter chips', () => {
+  it('says how many are at each stage before it is pressed', async () => {
+    renderAt();
+    await screen.findByRole('heading', { level: 2, name: 'Mix' });
+
+    const chips = screen.getByRole('group', { name: 'Show only' });
+    expect(within(chips).getByRole('button', { name: 'Not quite there 1' })).toBeEnabled();
+    // Nothing is locked in this round, so the stage is there and unpressable.
+    expect(within(chips).getByRole('button', { name: 'Locked 0' })).toBeDisabled();
+  });
+
+  it('narrows the list to one stage and back again', async () => {
+    const user = userEvent.setup();
+    renderAt();
+    await screen.findByRole('heading', { level: 2, name: 'Mix' });
+
+    const decisions = () => screen.getByRole('list', { name: 'Decisions' });
+    expect(within(decisions()).getAllByRole('listitem')).toHaveLength(2);
+
+    await user.click(screen.getByRole('button', { name: 'Not touched 1' }));
+    expect(within(decisions()).getByText('Automation pass')).toBeInTheDocument();
+    expect(within(decisions()).queryByText('Vocal sits in mix')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'All 2' }));
+    expect(within(decisions()).getAllByRole('listitem')).toHaveLength(2);
   });
 });
 

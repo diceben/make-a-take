@@ -189,7 +189,7 @@ export async function setSongNotes(
 const JOURNEY_COLUMNS = `
   id, key, position, current_round,
   rounds (
-    id, number, closed_at,
+    id, number, opened_at, closed_at, reopen_reason,
     decisions (
       id, title, subtitle, position, state, state_set_at, state_confirmed_at,
       steps (id, label, position, done)
@@ -291,6 +291,29 @@ export async function resolveNote(client: SupabaseClient, id: string): Promise<v
 
   if (error) throw new Error(error.message);
   if (!data || data.length === 0) throw new Error('That note was not put away.');
+}
+
+/**
+ * Closing a round: the checkpoint, written down.
+ *
+ * It is allowed with decisions still open — a pass can end with something
+ * unsettled, and the round records that it did. What it must not do is happen
+ * without the writer having seen them, which is the checkpoint's job, not this
+ * one's.
+ */
+export async function closeRound(client: SupabaseClient, id: string): Promise<string> {
+  const closed = new Date().toISOString();
+  const { data, error } = await client
+    .from('rounds')
+    .update({ closed_at: closed })
+    .eq('id', id)
+    .select('id');
+
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) {
+    throw new Error('That round was not closed. You may only be able to view this song.');
+  }
+  return closed;
 }
 
 /** Going back. A new round, filled from the template, leaving the old one whole. */

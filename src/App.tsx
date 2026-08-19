@@ -5,6 +5,7 @@ import { useAuth } from './features/auth/auth-context';
 import { SignInForm } from './features/auth/SignInForm';
 import { SongsPage } from './features/songs/SongsPage';
 import { SongJourneyPage } from './features/journey/SongJourneyPage';
+import { CheckpointPage } from './features/journey/CheckpointPage';
 import { AccountMenu } from './features/account/AccountMenu';
 import './App.css';
 
@@ -43,6 +44,10 @@ export function Shell() {
             <Route path="/" element={<SongsPage />} />
             <Route path="/songs/:id" element={<SongJourneyPage />} />
             <Route path="/songs/:id/:phase" element={<SongJourneyPage />} />
+            {/* The check is its own address, not a layer over the phase:
+                stopping to consider a pass is an act of its own, and one worth
+                being able to come back to. */}
+            <Route path="/songs/:id/:phase/check" element={<CheckpointPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         )}

@@ -45,15 +45,142 @@
   min-width: 0;
 }
 
-.journey-page__phase {
-  font-size: var(--text-lg);
-  font-weight: var(--weight-medium);
+/* ------------------------------------------------- the head of the phase */
+
+.phase-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
 }
 
-.journey-page__round {
+.phase-head__badge {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  place-items: center;
+  border: var(--border-width) solid var(--edge-dir);
+  border-radius: var(--radius-md);
+  background: var(--fill-dir);
+  color: var(--accent-soft);
+}
+
+.phase-head__icon {
+  width: 22px;
+  height: 22px;
+}
+
+.phase-head__name {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.phase-head__blurb {
+  margin-top: var(--space-1);
+  color: var(--text-second);
+  font-size: var(--text-sm);
+}
+
+/* ------------------------------------------------------------- the meter */
+
+.meter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.meter__count {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.meter__done {
+  color: var(--accent-soft);
+}
+
+.meter__of {
+  color: var(--text-muted);
+}
+
+.meter__track {
+  height: 4px;
+  flex: 1;
+  min-width: 0;
+  border-radius: 2px;
+  background: var(--rule);
+}
+
+.meter__fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width var(--transition-fast);
+}
+
+.meter__share {
+  flex: none;
   color: var(--text-second);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
+}
+
+.meter__round {
+  margin-left: var(--space-2);
+  color: var(--state-notq-text);
+}
+
+/* ------------------------------------------------------------- the chips */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.chips__chip {
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--rule-alt);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-second);
+  font-size: var(--text-xs);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.chips__count {
+  margin-left: var(--space-1);
+  color: var(--text-muted);
+}
+
+.chips__chip:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Pressed is the one that is doing something, so it is the one with a fill.
+   aria-pressed carries it for anybody not seeing the fill. */
+.chips__chip[aria-pressed='true'] {
+  border-color: var(--edge-dir);
+  background: var(--button);
+  color: var(--text);
+}
+
+.chips__chip[aria-pressed='true'] .chips__count {
+  color: var(--text-second);
+}
+
+.chips__chip:disabled {
+  border-color: var(--rule);
+  color: var(--text-muted);
+  cursor: default;
 }
 
 .journey-page__decisions {
@@ -71,8 +198,11 @@
 }
 
 .journey-page__aside {
+  display: flex;
   width: var(--aside-width);
   flex: none;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .journey-page__back {
