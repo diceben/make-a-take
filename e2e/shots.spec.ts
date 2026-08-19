@@ -32,3 +32,10 @@ test('the list', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Sarah Kane' })).toBeVisible();
   await page.screenshot({ path: 'shots/list.png', fullPage: true });
 });
+
+test('an empty phase', async ({ page }) => {
+  await signedIn(page);
+  await page.goto('/songs/s1/capture');
+  await expect(page.getByRole('heading', { level: 2, name: 'Capture', exact: true })).toBeVisible();
+  await page.screenshot({ path: 'shots/empty-phase.png', fullPage: true });
+});

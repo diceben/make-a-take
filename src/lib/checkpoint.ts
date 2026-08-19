@@ -89,6 +89,8 @@ export function spanInWords(checkpoint: Checkpoint): string {
  * a song that only the person listening can make.
  */
 export function summaryOf(checkpoint: Checkpoint): string {
-  if (checkpoint.total === 0) return 'Nothing to check yet.';
+  // Not "nothing to check yet": some phases never need a decision. An idea is
+  // captured or it is not, and a phase like that still has to be able to end.
+  if (checkpoint.total === 0) return 'No decisions in this round.';
   return `${String(checkpoint.locked)} of ${String(checkpoint.total)} decisions locked.`;
 }

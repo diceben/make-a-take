@@ -205,8 +205,21 @@ function OpenRound({
       </p>
 
       <section className="check__block" aria-labelledby="check-open">
-        <h2 id="check-open">{open.length === 0 ? 'Nothing is open' : 'Still open'}</h2>
-        {open.length === 0 ? (
+        <h2 id="check-open">
+          {checkpoint.total === 0
+            ? 'Nothing to decide here'
+            : open.length === 0
+              ? 'Nothing is open'
+              : 'Still open'}
+        </h2>
+        {checkpoint.total === 0 ? (
+          // Not a failure state. Some phases genuinely have nothing to judge,
+          // and one that cannot be ended is one that stays open for ever.
+          <p className="check__note">
+            This phase has no decisions in it. Some need none — an idea is caught or it is not.
+            Closing records that you went through it.
+          </p>
+        ) : open.length === 0 ? (
           <p className="check__empty">
             Every decision in this round is at least good enough to play to somebody.
           </p>
@@ -255,7 +268,7 @@ function OpenRound({
         <button type="button" className="check__close" disabled={busy} onClick={onClose}>
           {busy
             ? 'Closing…'
-            : checkpoint.settled
+            : checkpoint.total === 0 || checkpoint.settled
               ? 'Close this round'
               : `Close it anyway — ${String(open.length)} still open`}
         </button>

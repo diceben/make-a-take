@@ -169,6 +169,22 @@ describe('the check on an open round', () => {
     expect(within(once as HTMLElement).getByText('Static balance')).toBeInTheDocument();
   });
 
+  it('closes a phase that has nothing in it, without calling it unfinished', async () => {
+    const user = userEvent.setup();
+    withRounds([round()]);
+    vi.mocked(data.closeRound).mockResolvedValue('2026-08-13T10:00:00Z');
+    renderAt();
+    await screen.findByRole('heading', { level: 1, name: 'Mix check' });
+
+    expect(screen.getByRole('heading', { name: 'Nothing to decide here' })).toBeInTheDocument();
+    // Not "0 still open": nothing is open, there is simply nothing there.
+    await user.click(screen.getByRole('button', { name: 'Close this round' }));
+
+    await waitFor(() => {
+      expect(data.closeRound).toHaveBeenCalledWith(auth.client, 'round-mix-1');
+    });
+  });
+
   it('shows no percentage', async () => {
     renderAt();
     await screen.findByRole('heading', { level: 1, name: 'Mix check' });

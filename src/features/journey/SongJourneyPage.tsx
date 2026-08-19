@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
 import {
   addNote,
+  closeRound,
   getJourney,
   getSong,
   resolveNote,
@@ -63,6 +64,7 @@ export function SongJourneyPage() {
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<StateFilter>('all');
+  const [closing, setClosing] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -139,6 +141,37 @@ export function SongJourneyPage() {
       }));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'That judgement was not saved.');
+    }
+  };
+
+  /**
+   * Closing a round from the card. Only ever an empty one — anything with
+   * decisions in it goes through the check, where what is open can be seen
+   * before it is signed off.
+   */
+  const close = async (roundId: string | undefined) => {
+    if (roundId === undefined) return;
+    setClosing(true);
+    setError(null);
+    try {
+      const closedAt = await closeRound(client, roundId);
+      setJourney((previous) =>
+        previous === null
+          ? previous
+          : {
+              ...previous,
+              phases: previous.phases.map((candidate) => ({
+                ...candidate,
+                rounds: candidate.rounds.map((r) =>
+                  r.id === roundId ? { ...r, closed_at: closedAt } : r,
+                ),
+              })),
+            },
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'That round was not closed.');
+    } finally {
+      setClosing(false);
     }
   };
 
@@ -276,8 +309,14 @@ export function SongJourneyPage() {
         </section>
 
         <aside className="journey-page__aside">
-          {checkpoint !== null && checkpoint.total > 0 && (
-            <CheckpointCard songId={id} phase={selected} checkpoint={checkpoint} />
+          {checkpoint !== null && (
+            <CheckpointCard
+              songId={id}
+              phase={selected}
+              checkpoint={checkpoint}
+              busy={closing}
+              onClose={() => void close(round?.id)}
+            />
           )}
 
           <ProductionCredits phases={journey.phases} />
