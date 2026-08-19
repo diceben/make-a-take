@@ -1,0 +1,30 @@
+.ring {
+  flex: none;
+}
+
+.ring__track {
+  stroke: var(--rule-alt);
+}
+
+.ring__track--locked,
+.ring__tick {
+  stroke: var(--state-locked);
+}
+
+.ring__fill {
+  /* Five fixed positions, so what moves between them is a step and not a
+     reading. 200ms, and off entirely when the system asks for less motion. */
+  transition: stroke-dasharray 200ms ease;
+}
+
+.ring__fill[data-state='direction_set'] {
+  stroke: var(--state-dir);
+}
+
+.ring__fill[data-state='not_quite_there'] {
+  stroke: var(--state-notq);
+}
+
+.ring__fill[data-state='feels_right'] {
+  stroke: var(--state-feels);
+}

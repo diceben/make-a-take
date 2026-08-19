@@ -4,7 +4,7 @@ import { AuthProvider } from './features/auth/AuthProvider';
 import { useAuth } from './features/auth/auth-context';
 import { SignInForm } from './features/auth/SignInForm';
 import { SongsPage } from './features/songs/SongsPage';
-import { SongPage } from './features/songs/SongPage';
+import { SongJourneyPage } from './features/journey/SongJourneyPage';
 import { AccountMenu } from './features/account/AccountMenu';
 import './App.css';
 
@@ -41,7 +41,8 @@ export function Shell() {
         {auth.status === 'signed-in' && (
           <Routes>
             <Route path="/" element={<SongsPage />} />
-            <Route path="/songs/:id" element={<SongPage />} />
+            <Route path="/songs/:id" element={<SongJourneyPage />} />
+            <Route path="/songs/:id/:phase" element={<SongJourneyPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         )}

@@ -1,5 +1,5 @@
-import type { Phase, SongWithSteps } from './model';
-import { currentPhase, songProgress } from './progress';
+import type { SongWithSteps } from './model';
+import type { PhaseKey } from './journey';
 
 /**
  * Narrowing a list of songs down to the ones being looked for, and putting them
@@ -11,12 +11,12 @@ import { currentPhase, songProgress } from './progress';
 
 export type SortBy = 'artist' | 'progress' | 'title';
 
-/** 'all', one of the seven phases, or the songs with nothing left to do. */
-export type PhaseFilter = 'all' | 'finished' | Phase;
+/** 'all', or one of the seven phases. */
+export type PhaseFilter = 'all' | PhaseKey;
 
 export const SORT_LABELS: Record<SortBy, string> = {
   artist: 'Artist',
-  progress: 'Progress',
+  progress: 'Decided',
   title: 'Title',
 };
 
@@ -34,13 +34,12 @@ export function matchesSearch(song: SongWithSteps, query: string): boolean {
   return haystack.includes(needle);
 }
 
-/** Which phase a song is sitting on now — the first one that is not finished. */
-export function matchesPhase(song: SongWithSteps, filter: PhaseFilter): boolean {
-  if (filter === 'all') return true;
-
-  const phase = currentPhase(song.phase_states, song.track_states);
-  if (filter === 'finished') return phase === null;
-  return phase === filter;
+/**
+ * The phase a song is in is where its last judgement was made, so it is worked
+ * out from the journey and handed in here rather than dug for.
+ */
+export function matchesPhase(phase: PhaseKey, filter: PhaseFilter): boolean {
+  return filter === 'all' || phase === filter;
 }
 
 /**
@@ -49,16 +48,17 @@ export function matchesPhase(song: SongWithSteps, filter: PhaseFilter): boolean 
  * nearly done, where is a title — so the page shows one flat list for those and
  * this puts every song in one order.
  */
-export function sortSongs(songs: SongWithSteps[], by: SortBy): SongWithSteps[] {
+export function sortSongs(
+  songs: SongWithSteps[],
+  by: SortBy,
+  /** How many decisions each song has locked — counted, never a percentage. */
+  lockedOf: (song: SongWithSteps) => number = () => 0,
+): SongWithSteps[] {
   const sorted = [...songs];
 
   if (by === 'progress') {
-    // Furthest along first: the question is what is nearly finished.
-    sorted.sort(
-      (a, b) =>
-        songProgress(b.phase_states, b.track_states) -
-          songProgress(a.phase_states, a.track_states) || a.title.localeCompare(b.title),
-    );
+    // Most decided first: the question is what is nearly finished.
+    sorted.sort((a, b) => lockedOf(b) - lockedOf(a) || a.title.localeCompare(b.title));
   } else if (by === 'title') {
     sorted.sort((a, b) => a.title.localeCompare(b.title));
   }
