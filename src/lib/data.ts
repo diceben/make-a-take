@@ -24,6 +24,44 @@ function unwrap<T>({ data, error }: { data: T | null; error: { message: string }
   return data;
 }
 
+/**
+ * The account's own profile row. A trigger creates one for every new user, but
+ * an account made before that trigger existed would have none — so a missing
+ * row is a normal answer here, not a failure.
+ */
+export async function getProfile(
+  client: SupabaseClient,
+  id: string,
+): Promise<{ display_name: string | null } | null> {
+  const { data, error } = await client
+    .from('profiles')
+    .select('display_name')
+    .eq('id', id)
+    .maybeSingle<{ display_name: string | null }>();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function setDisplayName(
+  client: SupabaseClient,
+  id: string,
+  name: string,
+): Promise<string | null> {
+  const trimmed = name.trim();
+  const value = trimmed === '' ? null : trimmed;
+
+  // Upsert rather than update: it also covers the account with no profile row.
+  const { data, error } = await client
+    .from('profiles')
+    .upsert({ id, display_name: value })
+    .select('id');
+
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) throw new Error('That name was not saved.');
+  return value;
+}
+
 export async function listSongs(client: SupabaseClient): Promise<SongWithSteps[]> {
   return unwrap(
     await client

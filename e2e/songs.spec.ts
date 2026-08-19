@@ -71,8 +71,18 @@ async function signedIn(page: Page) {
     }),
   );
 
+  await page.route('**/rest/v1/profiles*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+  );
+
   await page.route('**/rest/v1/phase_states*', (route) => route.fulfill({ status: 204, body: '' }));
   await page.route('**/rest/v1/track_states*', (route) => route.fulfill({ status: 204, body: '' }));
+}
+
+/** The theme lives in the account menu once somebody is signed in. */
+async function switchToLight(page: Page) {
+  await page.getByRole('button', { name: /^Account:/ }).click();
+  await page.getByRole('button', { name: 'Light theme' }).click();
 }
 
 async function analyse(page: Page) {
@@ -116,7 +126,9 @@ test.describe('the song list', () => {
     await expect(page.getByRole('heading', { name: 'Sarah Kane' })).toBeVisible();
     expect((await analyse(page)).violations).toEqual([]);
 
-    await page.getByRole('button', { name: 'Light theme' }).click();
+    // Left open on purpose: the panel is part of what has to hold up in both
+    // themes, and it is the only thing on the page axe would otherwise miss.
+    await switchToLight(page);
     expect((await analyse(page)).violations).toEqual([]);
   });
 });
@@ -137,7 +149,8 @@ test.describe('a song', () => {
 
     expect((await analyse(page)).violations).toEqual([]);
 
-    await page.getByRole('button', { name: 'Light theme' }).click();
+    await switchToLight(page);
+    await page.keyboard.press('Escape');
     expect((await analyse(page)).violations).toEqual([]);
   });
 

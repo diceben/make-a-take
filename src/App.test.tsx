@@ -45,8 +45,14 @@ function fakeClient({
   } as unknown as SupabaseClient;
 }
 
-const renderApp = (client: SupabaseClient) => {
+// Defaults live here, not in renderApp, so a test can set its own before it
+// renders without renderApp overwriting them a moment later.
+beforeEach(() => {
   vi.mocked(data.listSongs).mockResolvedValue([]);
+  vi.mocked(data.getProfile).mockResolvedValue(null);
+});
+
+const renderApp = (client: SupabaseClient) => {
   return render(
     <MemoryRouter>
       <AuthProvider client={client}>
@@ -154,11 +160,42 @@ describe('signed in', () => {
     ).toBeInTheDocument();
   });
 
+  it('puts the account behind the avatar, with the version on it', async () => {
+    const user = userEvent.setup();
+    renderApp(fakeClient({ session }));
+    await screen.findByRole('heading', { level: 1, name: 'Your songs' });
+
+    const avatar = screen.getByRole('button', { name: 'Account: ben@example.com' });
+    expect(avatar).toHaveTextContent('B');
+    expect(avatar).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(avatar);
+    expect(avatar).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByLabelText('Display name')).toBeInTheDocument();
+    expect(screen.getByText(/^Version /)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+  });
+
+  it('shows the initials of a display name once there is one', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.getProfile).mockResolvedValue({ display_name: 'Ben Dice' });
+    renderApp(fakeClient({ session }));
+    await screen.findByRole('heading', { level: 1, name: 'Your songs' });
+
+    const avatar = await screen.findByRole('button', { name: 'Account: Ben Dice' });
+    expect(avatar).toHaveTextContent('BD');
+
+    await user.click(avatar);
+    expect(screen.getByLabelText('Display name')).toHaveValue('Ben Dice');
+  });
+
   it('signs out again', async () => {
     const user = userEvent.setup();
     renderApp(fakeClient({ session }));
     await screen.findByRole('heading', { level: 1, name: 'Your songs' });
 
+    // Sign out lives behind the avatar now.
+    await user.click(screen.getByRole('button', { name: /^Account:/ }));
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
 
     await waitFor(() =>
