@@ -10,25 +10,36 @@ import {
   setStepDone,
 } from '../../lib/data';
 import {
+  PHASE_DESCRIPTIONS,
   PHASE_KEYS,
   PHASE_LABELS,
+  STATES,
+  STATE_LABELS,
   currentPhase as phaseInHand,
   currentRound,
   decisionsOf,
-  lockedCount,
+  isSettled,
   openDecisions,
+  type Decision,
   type DecisionState,
   type Journey,
   type PhaseKey,
 } from '../../lib/journey';
+import { checkpointFor } from '../../lib/checkpoint';
 import type { SongWithSteps } from '../../lib/model';
+import { CheckpointBanner, CheckpointCard } from './Checkpoint';
 import { DecisionRow } from './DecisionRow';
+import { PhaseIcon } from './PhaseIcon';
 import { PhaseJourney } from './PhaseJourney';
 import { AddNote, WaitingNotes } from './PhaseNotes';
+import { ProductionCredits } from './ProductionCredits';
 import './SongJourneyPage.css';
 
 const isPhaseKey = (value: string | undefined): value is PhaseKey =>
   value !== undefined && (PHASE_KEYS as readonly string[]).includes(value);
+
+/** 'all', or one of the five stages. */
+type StateFilter = 'all' | DecisionState;
 
 /**
  * A song, one phase at a time.
@@ -51,6 +62,7 @@ export function SongJourneyPage() {
   const [journey, setJourney] = useState<Journey | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<StateFilter>('all');
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -95,8 +107,14 @@ export function SongJourneyPage() {
   const phase = journey.phases.find((candidate) => candidate.key === selected);
   const round = phase ? currentRound(phase) : null;
   const decisions = phase ? decisionsOf(phase) : [];
-  const counted = phase ? lockedCount(phase) : { locked: 0, total: 0 };
+  const checkpoint = phase ? checkpointFor(phase) : null;
   const open = openDecisions(journey.phases);
+
+  // Settled, not locked: the bar asks how much of this phase you would play to
+  // somebody, which is a different question from what you would never touch
+  // again. The word is on the line so the two are never read as one figure.
+  const settled = decisions.filter(isSettled).length;
+  const shown = filter === 'all' ? decisions : decisions.filter((one) => one.state === filter);
 
   const replaceDecision = (decisionId: string, change: (previous: Journey) => Journey) => {
     setJourney((previous) => (previous === null ? previous : change(previous)));
@@ -189,21 +207,37 @@ export function SongJourneyPage() {
         />
 
         <section className="journey-page__main" aria-labelledby="phase-heading">
-          <h2 id="phase-heading" className="journey-page__phase">
-            {PHASE_LABELS[selected]}
-          </h2>
-          <p className="journey-page__round">
-            round {round?.number ?? 1}
-            {counted.total > 0 && ` · ${counted.locked} of ${counted.total} locked`}
-          </p>
+          <header className="phase-head">
+            <span className="phase-head__badge">
+              <PhaseIcon phase={selected} className="phase-head__icon" />
+            </span>
+            <div className="phase-head__words">
+              <h2 id="phase-heading" className="phase-head__name">
+                {PHASE_LABELS[selected]}
+              </h2>
+              <p className="phase-head__blurb">{PHASE_DESCRIPTIONS[selected]}</p>
+            </div>
+          </header>
+
+          {decisions.length > 0 && (
+            <Meter settled={settled} total={decisions.length} round={round?.number ?? 1} />
+          )}
+
+          {decisions.length > 1 && (
+            <Chips decisions={decisions} filter={filter} onFilter={setFilter} />
+          )}
 
           {decisions.length === 0 ? (
             <p className="journey-page__empty">
               Nothing here yet. This phase has no decisions in this round.
             </p>
+          ) : shown.length === 0 ? (
+            <p className="journey-page__empty">
+              Nothing in this phase is at {STATE_LABELS[filter as DecisionState].toLowerCase()}.
+            </p>
           ) : (
             <ul className="journey-page__decisions" aria-label="Decisions">
-              {decisions.map((decision) => (
+              {shown.map((decision) => (
                 <DecisionRow
                   key={decision.id}
                   decision={decision}
@@ -213,6 +247,13 @@ export function SongJourneyPage() {
                 />
               ))}
             </ul>
+          )}
+
+          {/* The checkpoint sits directly under the decisions, because working
+              down the list is how you arrive at the question it asks. The note
+              field comes after it: writing something down is the quieter act. */}
+          {checkpoint !== null && (
+            <CheckpointBanner songId={id} phase={selected} checkpoint={checkpoint} />
           )}
 
           <AddNote
@@ -235,6 +276,12 @@ export function SongJourneyPage() {
         </section>
 
         <aside className="journey-page__aside">
+          {checkpoint !== null && checkpoint.total > 0 && (
+            <CheckpointCard songId={id} phase={selected} checkpoint={checkpoint} />
+          )}
+
+          <ProductionCredits phases={journey.phases} />
+
           <WaitingNotes
             phase={selected}
             notes={journey.notes}
@@ -273,6 +320,89 @@ export function SongJourneyPage() {
           Back to your songs
         </button>
       </p>
+    </div>
+  );
+}
+
+/**
+ * How much of this phase is settled, as a count with a bar behind it.
+ *
+ * The percentage is the same figure said a second way, and it is here because it
+ * reads at a glance where a fraction has to be worked out. It is safe in a way
+ * the song-wide one was not: everything in it is one phase's decisions, so the
+ * things being added together are actually comparable.
+ */
+function Meter({ settled, total, round }: { settled: number; total: number; round: number }) {
+  const share = Math.round((settled / total) * 100);
+
+  return (
+    <div className="meter">
+      <p className="meter__count">
+        <span className="meter__done">{settled}</span>
+        <span className="meter__of"> / {total} decisions settled</span>
+      </p>
+
+      {/* Decorative: the numbers either side of it are the content, and a
+          progressbar role here would have a screen reader read the same
+          fraction twice. */}
+      <span className="meter__track" aria-hidden="true">
+        <span className="meter__fill" style={{ width: `${String(share)}%` }} />
+      </span>
+
+      <p className="meter__share">
+        {share}%{round > 1 && <span className="meter__round">round {round}</span>}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * The five stages as filters, each with its count.
+ *
+ * Counts on the chips, because a filter that leads to an empty list is a
+ * question answered too late — "Locked 4" says what pressing it will do.
+ * A stage nothing is at is disabled rather than hidden, so the row does not
+ * reshuffle itself under the pointer every time a judgement changes.
+ */
+function Chips({
+  decisions,
+  filter,
+  onFilter,
+}: {
+  decisions: Decision[];
+  filter: StateFilter;
+  onFilter: (next: StateFilter) => void;
+}) {
+  const count = (state: DecisionState) => decisions.filter((one) => one.state === state).length;
+
+  return (
+    <div className="chips" role="group" aria-label="Show only">
+      <button
+        type="button"
+        className="chips__chip"
+        aria-pressed={filter === 'all'}
+        onClick={() => {
+          onFilter('all');
+        }}
+      >
+        All <span className="chips__count">{decisions.length}</span>
+      </button>
+
+      {STATES.map((state) => (
+        <button
+          key={state}
+          type="button"
+          className="chips__chip"
+          data-state={state}
+          aria-pressed={filter === state}
+          disabled={count(state) === 0}
+          onClick={() => {
+            onFilter(state);
+          }}
+        >
+          {STATE_LABELS[state]} <span className="chips__count">{count(state)}</span>
+        </button>
+      ))}
     </div>
   );
 }

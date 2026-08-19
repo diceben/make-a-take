@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import {
   PHASE_LABELS,
+  PHASE_SUBTITLES,
   markersFor,
   songTotals,
   type Note,
@@ -57,7 +58,13 @@ export function PhaseJourney({
               >
                 <span className="journey__line">
                   <span className="journey__number">{String(phase.position).padStart(2, '0')}</span>
-                  <span className="journey__name">{PHASE_LABELS[phase.key]}</span>
+                  <span className="journey__words">
+                    <span className="journey__name">{PHASE_LABELS[phase.key]}</span>
+                    {/* What the phase is, in two words. The names alone are
+                        verbs a producer would argue about — "produce" and
+                        "track" mean different things in different rooms. */}
+                    <span className="journey__sub">{PHASE_SUBTITLES[phase.key]}</span>
+                  </span>
                   {phase.key === current && (
                     <span className="journey__here" title="Where the last judgement was made">
                       here

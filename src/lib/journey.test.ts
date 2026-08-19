@@ -43,9 +43,25 @@ const phase = (key: PhaseKey, decisions: Decision[] = [], round = 1, closed = fa
   rounds: [
     // An earlier round that must never be mistaken for the one in hand.
     ...(round > 1
-      ? [{ id: id(), number: 1, closed_at: '2026-08-01T10:00:00Z', decisions: [decision('Old')] }]
+      ? [
+          {
+            id: id(),
+            number: 1,
+            opened_at: '2026-07-25T10:00:00Z',
+            closed_at: '2026-08-01T10:00:00Z',
+            reopen_reason: null,
+            decisions: [decision('Old')],
+          },
+        ]
       : []),
-    { id: id(), number: round, closed_at: closed ? '2026-08-12T10:00:00Z' : null, decisions },
+    {
+      id: id(),
+      number: round,
+      opened_at: '2026-08-02T10:00:00Z',
+      closed_at: closed ? '2026-08-12T10:00:00Z' : null,
+      reopen_reason: round > 1 ? 'The low end fell apart in the car' : null,
+      decisions,
+    },
   ],
 });
 
