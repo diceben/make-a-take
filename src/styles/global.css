@@ -40,8 +40,10 @@ button {
   cursor: pointer;
 }
 
+/* The soft accent, not the flat one: --accent is a surface and a ring, and as
+   text on the page background it reaches only 4.89. */
 a {
-  color: var(--accent);
+  color: var(--accent-soft);
 }
 
 .skip-link {

@@ -7,6 +7,7 @@ import { SongsPage } from './SongsPage';
 import { AuthContext, type Auth } from '../auth/auth-context';
 import { PHASES, TRACKS, type PhaseState, type StepStatus, type TrackState } from '../../lib/model';
 import * as data from '../../lib/data';
+import { PHASE_KEYS, type Phase } from '../../lib/journey';
 
 vi.mock('../../lib/data');
 
@@ -56,7 +57,52 @@ const openAddSong = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.click(await screen.findByRole('button', { name: 'Add new song' }));
 };
 
+/**
+ * A journey with one locked decision in `key`, which is what gives the list a
+ * phase to name and a figure to count. `null` is a song nobody has judged yet.
+ */
+const journeyFor = (songId: string, key: (typeof PHASE_KEYS)[number] | null = 'write'): Phase[] =>
+  PHASE_KEYS.map((phaseKey) => ({
+    id: `${songId}-${phaseKey}`,
+    key: phaseKey,
+    position: PHASE_KEYS.indexOf(phaseKey) + 1,
+    current_round: 1,
+    rounds: [
+      {
+        id: `${songId}-${phaseKey}-r1`,
+        number: 1,
+        closed_at: null,
+        decisions:
+          phaseKey === key
+            ? [
+                {
+                  id: `${songId}-${phaseKey}-d1`,
+                  title: 'Structure',
+                  subtitle: null,
+                  position: 0,
+                  state: 'locked' as const,
+                  state_set_at: '2026-08-10T10:00:00Z',
+                  state_confirmed_at: '2026-08-12T10:00:00Z',
+                  steps: [],
+                },
+              ]
+            : [],
+      },
+    ],
+  }));
+
 beforeEach(() => {
+  // Deliberately different: one song judged in the mix, one nobody has touched.
+  // Two songs with the same journey would make "1 of 1 locked" ambiguous and
+  // leave the order by what is decided nothing to sort on.
+  vi.mocked(data.listJourneys).mockResolvedValue(
+    new Map([
+      ['s0', journeyFor('s0')],
+      ['s1', journeyFor('s1', 'mix')],
+      ['s2', journeyFor('s2', null)],
+      ['s3', journeyFor('s3', null)],
+    ]),
+  );
   vi.mocked(data.listSongs).mockResolvedValue([
     song('s1', 'Opening Track', 'Sarah Kane', { writing: 'done', arrangement: 'done' }),
     song('s2', 'The Slow One', 'Sarah Kane'),
@@ -93,23 +139,15 @@ describe('SongsPage', () => {
     expect(await screen.findByRole('heading', { name: 'No artist yet' })).toBeInTheDocument();
   });
 
-  it('shows weighted progress, not a count of finished steps', async () => {
-    renderPage();
-    // writing (10) and arrangement (10) of 100 total
-    const bar = await screen.findByRole('progressbar', { name: 'Progress of Opening Track' });
-    expect(bar).toHaveAttribute('aria-valuenow', '20');
-
-    const untouched = screen.getByRole('progressbar', { name: 'Progress of The Slow One' });
-    expect(untouched).toHaveAttribute('aria-valuenow', '0');
-  });
-
-  it('names the phase each song is sitting on', async () => {
+  it('names the phase a song is in, and counts what is decided — never a percentage', async () => {
     renderPage();
     await screen.findByRole('link', { name: 'Opening Track' });
-    // The phase filter offers the same word, so this asks for the row's cell.
-    expect(
-      screen.getByText('Pre-production', { selector: '.song-list__phase' }),
-    ).toBeInTheDocument();
+
+    expect(screen.getByText('Mix', { selector: '.song-list__phase' })).toBeInTheDocument();
+    expect(screen.getByText('1 of 1 locked')).toBeInTheDocument();
+    // A song nobody has judged says so, rather than counting up to nothing.
+    expect(screen.getByText('not started')).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/\d+\s?%/);
   });
 
   it('says so when there is nothing at all', async () => {
@@ -359,7 +397,7 @@ describe('SongsPage', () => {
     renderPage();
     await screen.findByRole('link', { name: 'Opening Track' });
 
-    await user.selectOptions(screen.getByLabelText('Phase'), 'preproduction');
+    await user.selectOptions(screen.getByLabelText('Phase'), 'mix');
 
     expect(screen.getByRole('link', { name: 'Opening Track' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'The Slow One' })).toBeNull();
@@ -377,6 +415,8 @@ describe('SongsPage', () => {
     await user.selectOptions(screen.getByLabelText('Sort'), 'progress');
 
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
+    // Most decided first, so the song with a locked decision leads — not the
+    // one that is alphabetically ahead of it.
     const links = screen.getAllByRole('link').map((link) => link.textContent);
     expect(links).toEqual(['Opening Track', 'Bell Tower']);
     expect(screen.getByText('Sarah Kane')).toBeInTheDocument();

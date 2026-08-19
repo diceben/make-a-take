@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
-import { createSong, listSongs, setSongsArtist } from '../../lib/data';
-import { PHASE_LABELS, PHASES, type SongWithSteps } from '../../lib/model';
+import { createSong, listJourneys, listSongs, setSongsArtist } from '../../lib/data';
+import { type SongWithSteps } from '../../lib/model';
 import { canonicalArtist, knownArtists } from '../../lib/artists';
 import {
   SORT_LABELS,
@@ -13,9 +13,15 @@ import {
   type PhaseFilter,
   type SortBy,
 } from '../../lib/browse';
-import { currentPhase, songProgress } from '../../lib/progress';
+import {
+  PHASE_KEYS,
+  PHASE_LABELS,
+  currentPhase,
+  lockedCount,
+  songTotals,
+  type Phase,
+} from '../../lib/journey';
 import { ArtistField } from './ArtistField';
-import { ProgressBar } from './ProgressBar';
 import './SongsPage.css';
 
 /** The heading for songs that do not name an artist. */
@@ -61,6 +67,8 @@ export function SongsPage() {
   const userId = auth.status === 'signed-in' ? auth.session.user.id : null;
 
   const [songs, setSongs] = useState<SongWithSteps[]>([]);
+  /** Every song's phases, for the phase in hand and the count of what is locked. */
+  const [journeys, setJourneys] = useState<Map<string, Phase[]>>(new Map());
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [error, setError] = useState<string | null>(null);
 
@@ -92,7 +100,12 @@ export function SongsPage() {
 
   const load = useCallback(async () => {
     try {
-      setSongs(await listSongs(client));
+      const [loadedSongs, loadedJourneys] = await Promise.all([
+        listSongs(client),
+        listJourneys(client),
+      ]);
+      setSongs(loadedSongs);
+      setJourneys(loadedJourneys);
       setState('ready');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load your songs.');
@@ -112,7 +125,13 @@ export function SongsPage() {
   // never only the ones a filter left standing.
   const known = knownArtists(songs);
 
-  const visible = songs.filter((song) => matchesSearch(song, query) && matchesPhase(song, phase));
+  const phasesOf = (song: SongWithSteps) => journeys.get(song.id) ?? [];
+  const phaseOf = (song: SongWithSteps) => currentPhase(phasesOf(song));
+  const lockedOf = (song: SongWithSteps) => songTotals(phasesOf(song)).locked;
+
+  const visible = songs.filter(
+    (song) => matchesSearch(song, query) && matchesPhase(phaseOf(song), phase),
+  );
 
   const addSong = async (title: string, artist: string) => {
     if (!userId) return;
@@ -188,7 +207,9 @@ export function SongsPage() {
       {/* Grouping is the artist sort. Asked for the furthest along or for a
           title, the question cuts across artists, so the headings would only be
           in the way — the artist moves into the row instead. */}
-      {sort !== 'artist' && <SongTable songs={sortSongs(visible, sort)} showArtist />}
+      {sort !== 'artist' && (
+        <SongTable songs={sortSongs(visible, sort, lockedOf)} showArtist phasesOf={phasesOf} />
+      )}
 
       {sort === 'artist' &&
         groupByArtist(visible).map((group) => (
@@ -238,7 +259,7 @@ export function SongsPage() {
                 </button>
               </div>
             )}
-            <SongTable songs={group.songs} />
+            <SongTable songs={group.songs} phasesOf={phasesOf} />
           </section>
         ))}
     </>
@@ -252,15 +273,19 @@ export function SongsPage() {
 function SongTable({
   songs,
   showArtist = false,
+  phasesOf,
 }: {
   songs: SongWithSteps[];
   showArtist?: boolean;
+  phasesOf: (song: SongWithSteps) => Phase[];
 }) {
   return (
     <ul className="song-list">
       {songs.map((song) => {
-        const progress = songProgress(song.phase_states, song.track_states);
-        const phase = currentPhase(song.phase_states, song.track_states);
+        const phases = phasesOf(song);
+        const phase = currentPhase(phases);
+        const locked = songTotals(phases).locked;
+        const decisions = phases.reduce((sum, one) => sum + lockedCount(one).total, 0);
         return (
           <li key={song.id} className="song-list__row">
             <span className="song-list__song">
@@ -271,8 +296,14 @@ function SongTable({
                 <span className="song-list__artist">{song.artist?.trim() || NO_ARTIST}</span>
               )}
             </span>
-            <span className="song-list__phase">{phase ? PHASE_LABELS[phase] : 'Finished'}</span>
-            <ProgressBar progress={progress} label={`Progress of ${song.title}`} />
+            <span className="song-list__phase">{PHASE_LABELS[phase]}</span>
+            {/* Counted, never a percentage — the figure that mixed six tracking
+                sub-items with one mixing toggle is what this replaces. With
+                nothing to count, "0 of 0" would read as a failure rather than
+                as a song that has not started. */}
+            <span className="song-list__locked">
+              {decisions === 0 ? 'not started' : `${locked} of ${decisions} locked`}
+            </span>
           </li>
         );
       })}
@@ -341,12 +372,11 @@ function Toolbar({
           }}
         >
           <option value="all">All</option>
-          {PHASES.map((name) => (
+          {PHASE_KEYS.map((name) => (
             <option key={name} value={name}>
               {PHASE_LABELS[name]}
             </option>
           ))}
-          <option value="finished">Finished</option>
         </select>
       </label>
 

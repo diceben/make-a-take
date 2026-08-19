@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { matchesPhase, matchesSearch, resultSummary, sortSongs } from './browse';
+import { PHASE_KEYS } from './journey';
 import { PHASES, TRACKS, type SongWithSteps, type StepStatus } from './model';
 
 const song = (
@@ -61,36 +62,18 @@ describe('matchesSearch', () => {
 });
 
 describe('matchesPhase', () => {
-  const fresh = song('s1', 'Fresh', null);
-  const mixing = song('s2', 'In the mix', null, {
-    writing: 'done',
-    arrangement: 'done',
-    preproduction: 'done',
-    drums: 'done',
-    bass: 'done',
-    guitars: 'done',
-    keys: 'done',
-    lead_vocals: 'done',
-    backing_vocals: 'done',
-    editing: 'done',
-  });
-  const finished = song('s3', 'Out', null, everything);
-
   it('keeps everything on "all"', () => {
-    expect(matchesPhase(fresh, 'all')).toBe(true);
-    expect(matchesPhase(finished, 'all')).toBe(true);
+    expect(matchesPhase('write', 'all')).toBe(true);
+    expect(matchesPhase('master', 'all')).toBe(true);
   });
 
-  it('matches the phase a song is actually sitting on', () => {
-    expect(matchesPhase(fresh, 'writing')).toBe(true);
-    expect(matchesPhase(fresh, 'mixing')).toBe(false);
-    expect(matchesPhase(mixing, 'mixing')).toBe(true);
+  it('keeps only the phase asked for', () => {
+    expect(matchesPhase('mix', 'mix')).toBe(true);
+    expect(matchesPhase('write', 'mix')).toBe(false);
   });
 
-  it('has a place for the songs with nothing left', () => {
-    expect(matchesPhase(finished, 'finished')).toBe(true);
-    expect(matchesPhase(fresh, 'finished')).toBe(false);
-    expect(matchesPhase(finished, 'mastering')).toBe(false);
+  it('knows the seven of the decision model', () => {
+    for (const key of PHASE_KEYS) expect(matchesPhase(key, key)).toBe(true);
   });
 });
 
@@ -99,8 +82,13 @@ describe('sortSongs', () => {
   const b = song('s2', 'Alpha', null);
   const c = song('s3', 'Charlie', null, everything);
 
-  it('puts the furthest along first', () => {
-    expect(sortSongs([b, a, c], 'progress').map((s) => s.title)).toEqual([
+  // How much is decided is counted from the journey and handed in, so the rule
+  // itself never has to know what a decision is.
+  const locked: Record<string, number> = { Alpha: 0, Bravo: 1, Charlie: 9 };
+  const lockedOf = (s: { title: string }) => locked[s.title] ?? 0;
+
+  it('puts the most decided first', () => {
+    expect(sortSongs([b, a, c], 'progress', lockedOf).map((s) => s.title)).toEqual([
       'Charlie',
       'Bravo',
       'Alpha',
@@ -109,7 +97,7 @@ describe('sortSongs', () => {
 
   it('falls back to the title when two are equally far', () => {
     const x = song('s4', 'Zulu', null);
-    expect(sortSongs([x, b], 'progress').map((s) => s.title)).toEqual(['Alpha', 'Zulu']);
+    expect(sortSongs([x, b], 'progress', lockedOf).map((s) => s.title)).toEqual(['Alpha', 'Zulu']);
   });
 
   it('sorts by title when asked', () => {

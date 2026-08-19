@@ -1,0 +1,188 @@
+.picker {
+  position: relative;
+  flex: none;
+}
+
+/* Fixed width, measured on the longest label. Sized to the current word, every
+   row would jump sideways the moment a judgement changed. */
+.badge {
+  width: var(--badge-width);
+  padding: var(--space-1) 0;
+  border: var(--border-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--fill-none);
+  color: var(--state-none-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.badge[data-state='direction_set'] {
+  border-color: var(--edge-dir);
+  background: var(--fill-dir);
+  color: var(--state-dir-text);
+}
+
+.badge[data-state='not_quite_there'] {
+  border-color: var(--edge-notq);
+  background: var(--fill-notq);
+  color: var(--state-notq-text);
+}
+
+.badge[data-state='feels_right'] {
+  border-color: var(--edge-feels);
+  background: var(--fill-feels);
+  color: var(--state-feels-text);
+}
+
+.badge[data-state='locked'] {
+  border-color: var(--edge-locked);
+  background: var(--fill-locked);
+  color: var(--state-locked-text);
+}
+
+.badge:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.picker__popover {
+  position: absolute;
+  z-index: 3;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  width: 280px;
+  padding: var(--space-1);
+  border: var(--border-width) solid var(--border-control);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.picker__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.picker__list:focus-visible {
+  outline: none;
+}
+
+.picker__option {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* Keyboard and pointer land on the same highlight, so there is never a question
+   which row Enter would take. */
+.picker__option--active,
+.picker__option:hover {
+  background: var(--surface-alt);
+}
+
+.picker__option[aria-selected='true'][data-state='direction_set'] {
+  background: var(--fill-dir);
+}
+
+.picker__option[aria-selected='true'][data-state='not_quite_there'] {
+  background: var(--fill-notq);
+}
+
+.picker__option[aria-selected='true'][data-state='feels_right'] {
+  background: var(--fill-feels);
+}
+
+.picker__option[aria-selected='true'][data-state='locked'] {
+  background: var(--fill-locked);
+}
+
+.picker__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.picker__dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--state-none);
+}
+
+.picker__dot[data-state='direction_set'] {
+  background: var(--state-dir);
+}
+.picker__dot[data-state='not_quite_there'] {
+  background: var(--state-notq);
+}
+.picker__dot[data-state='feels_right'] {
+  background: var(--state-feels);
+}
+.picker__dot[data-state='locked'] {
+  background: var(--state-locked);
+}
+
+.picker__label {
+  font-size: var(--text-sm);
+  color: var(--text-second);
+}
+
+.picker__option[aria-selected='true'] .picker__label {
+  color: var(--text);
+}
+
+/* The selected row carries a state fill, which is darker than the popover
+   behind it. On that fill the muted grey reaches only 6.62, so the definition
+   steps up a rung with the label rather than the row losing its colour. */
+.picker__option[aria-selected='true'] .picker__definition {
+  color: var(--text-second);
+}
+
+.picker__tick {
+  margin-left: auto;
+  color: var(--text-second);
+}
+
+.picker__definition {
+  display: block;
+  margin-left: calc(7px + var(--space-2));
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.picker__foot {
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--border-width) solid var(--rule);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.picker__foot--confirmed {
+  color: var(--state-locked-text);
+}
+
+/* No pointer to place a popover against, and a thumb needs a bigger target. */
+@media (max-width: 40rem) {
+  .picker__popover {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: auto;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: none;
+    padding: var(--space-3);
+  }
+
+  .picker__option {
+    min-height: 44px;
+    padding: var(--space-3);
+  }
+}

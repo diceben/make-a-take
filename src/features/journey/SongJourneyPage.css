@@ -1,0 +1,111 @@
+.journey-page__head {
+  margin-bottom: var(--space-6);
+}
+
+.journey-page__head h1 {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+}
+
+/* What is still open, instead of how far along the song is. A percentage
+   mixed six sub-items under tracking with one toggle for mixing and measured
+   the interface; this is the thing you would otherwise work out yourself. */
+.journey-page__open {
+  margin-top: var(--space-2);
+  color: var(--text-second);
+  font-size: var(--text-sm);
+}
+
+.journey-page__open-label {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.journey-page__open a {
+  color: var(--text-second);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.journey-page__open a:hover {
+  color: var(--text);
+}
+
+.journey-page__columns {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
+}
+
+.journey-page__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.journey-page__phase {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+}
+
+.journey-page__round {
+  color: var(--text-second);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.journey-page__decisions {
+  margin: var(--space-4) 0 0;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  list-style: none;
+}
+
+.journey-page__empty {
+  margin-top: var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.journey-page__aside {
+  width: var(--aside-width);
+  flex: none;
+}
+
+.journey-page__back {
+  margin-top: var(--space-12);
+}
+
+.journey-page__back button {
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+
+/* The right column falls under the middle one before the sidebar gives way:
+   the journey is navigation and has to stay. */
+@media (max-width: 75rem) {
+  .journey-page__columns {
+    flex-wrap: wrap;
+  }
+
+  .journey-page__aside {
+    width: 100%;
+  }
+}
+
+@media (max-width: 60rem) {
+  .journey-page__columns {
+    flex-direction: column;
+  }
+
+  .journey-page__main {
+    width: 100%;
+  }
+}
