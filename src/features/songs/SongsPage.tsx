@@ -2,8 +2,17 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
 import { createSong, listSongs, setSongsArtist } from '../../lib/data';
-import { PHASE_LABELS, type SongWithSteps } from '../../lib/model';
+import { PHASE_LABELS, PHASES, type SongWithSteps } from '../../lib/model';
 import { canonicalArtist, knownArtists } from '../../lib/artists';
+import {
+  SORT_LABELS,
+  matchesPhase,
+  matchesSearch,
+  resultSummary,
+  sortSongs,
+  type PhaseFilter,
+  type SortBy,
+} from '../../lib/browse';
 import { currentPhase, songProgress } from '../../lib/progress';
 import { ArtistField } from './ArtistField';
 import { ProgressBar } from './ProgressBar';
@@ -13,6 +22,12 @@ import './SongsPage.css';
 const NO_ARTIST = 'No artist yet';
 
 type Group = { artist: string; named: boolean; songs: SongWithSteps[] };
+
+/** Every song under a heading, filtered or not — see the rename that uses it. */
+function idsOfArtist(songs: SongWithSteps[], heading: string): string[] {
+  const wanted = heading === NO_ARTIST ? '' : heading;
+  return songs.filter((song) => (song.artist?.trim() ?? '') === wanted).map((song) => song.id);
+}
 
 /**
  * Songs group under the artist they name. An artist is a word on the song, not
@@ -52,6 +67,15 @@ export function SongsPage() {
   /** Which group's heading is currently a text field, keyed by its name. */
   const [editing, setEditing] = useState<string | null>(null);
 
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<SortBy>('artist');
+  const [phase, setPhase] = useState<PhaseFilter>('all');
+
+  const clearFilters = () => {
+    setQuery('');
+    setPhase('all');
+  };
+
   // Renaming a group replaces the heading it was started from — and the group
   // may move, since the list is sorted by name. Without this the focus ring
   // would land back at the top of the document. Held in a ref so putting focus
@@ -84,8 +108,11 @@ export function SongsPage() {
     void load();
   }, [load]);
 
-  // What the two fields offer while a name is being typed.
+  // What the two fields offer while a name is being typed. Always every artist,
+  // never only the ones a filter left standing.
   const known = knownArtists(songs);
+
+  const visible = songs.filter((song) => matchesSearch(song, query) && matchesPhase(song, phase));
 
   const addSong = async (title: string, artist: string) => {
     if (!userId) return;
@@ -137,60 +164,98 @@ export function SongsPage() {
 
       <AddSong known={known} onSubmit={addSong} />
 
-      {groupByArtist(songs).map((group) => (
-        <section key={group.artist} className="artist">
-          {editing === group.artist ? (
-            <RenameArtist
-              value={group.named ? group.artist : ''}
-              // Its own name is no suggestion, and offering it would be the one
-              // row that changes nothing.
-              known={known.filter((name) => name !== group.artist)}
-              onCancel={() => {
-                pendingFocus.current = group.artist;
-                setEditing(null);
-              }}
-              onSave={async (name) => {
-                pendingFocus.current = await renameArtist(
-                  group.songs.map((song) => song.id),
-                  name,
-                );
-                setEditing(null);
-              }}
-            />
-          ) : (
-            <div className="artist__heading">
-              <h2 className={group.named ? 'artist__name' : 'artist__name artist__name--none'}>
-                {group.artist}
-              </h2>
-              {/* Present the whole time — it has to be, or the keyboard could
+      {songs.length > 0 && (
+        <Toolbar
+          query={query}
+          sort={sort}
+          phase={phase}
+          summary={resultSummary(visible.length, songs.length)}
+          onQuery={setQuery}
+          onSort={setSort}
+          onPhase={setPhase}
+        />
+      )}
+
+      {songs.length > 0 && visible.length === 0 && (
+        <p className="app-lead">
+          Nothing matches that.{' '}
+          <button type="button" className="browse__clear" onClick={clearFilters}>
+            Clear the filters
+          </button>
+        </p>
+      )}
+
+      {/* Grouping is the artist sort. Asked for the furthest along or for a
+          title, the question cuts across artists, so the headings would only be
+          in the way — the artist moves into the row instead. */}
+      {sort !== 'artist' && <SongTable songs={sortSongs(visible, sort)} showArtist />}
+
+      {sort === 'artist' &&
+        groupByArtist(visible).map((group) => (
+          <section key={group.artist} className="artist">
+            {editing === group.artist ? (
+              <RenameArtist
+                value={group.named ? group.artist : ''}
+                // Its own name is no suggestion, and offering it would be the one
+                // row that changes nothing.
+                known={known.filter((name) => name !== group.artist)}
+                onCancel={() => {
+                  pendingFocus.current = group.artist;
+                  setEditing(null);
+                }}
+                onSave={async (name) => {
+                  // Every song of that artist, not only the ones on screen. A
+                  // rename under a filter must not split the group in two.
+                  pendingFocus.current = await renameArtist(idsOfArtist(songs, group.artist), name);
+                  setEditing(null);
+                }}
+              />
+            ) : (
+              <div className="artist__heading">
+                <h2 className={group.named ? 'artist__name' : 'artist__name artist__name--none'}>
+                  {group.artist}
+                </h2>
+                {/* Present the whole time — it has to be, or the keyboard could
                   never reach it — but only visible for the heading being
                   pointed at or focused. A button on every heading at once said
                   "edit me" about the entire page. */}
-              <button
-                type="button"
-                className="artist__edit"
-                aria-label={
-                  group.named ? `Edit ${group.artist}` : 'Edit the artist for the songs without one'
-                }
-                ref={(node) => {
-                  editButtons.current.set(group.artist, node);
-                }}
-                onClick={() => {
-                  setEditing(group.artist);
-                }}
-              >
-                Edit
-              </button>
-            </div>
-          )}
-          <SongTable songs={group.songs} />
-        </section>
-      ))}
+                <button
+                  type="button"
+                  className="artist__edit"
+                  aria-label={
+                    group.named
+                      ? `Edit ${group.artist}`
+                      : 'Edit the artist for the songs without one'
+                  }
+                  ref={(node) => {
+                    editButtons.current.set(group.artist, node);
+                  }}
+                  onClick={() => {
+                    setEditing(group.artist);
+                  }}
+                >
+                  Edit
+                </button>
+              </div>
+            )}
+            <SongTable songs={group.songs} />
+          </section>
+        ))}
     </>
   );
 }
 
-function SongTable({ songs }: { songs: SongWithSteps[] }) {
+/**
+ * Sorting by artist keeps the headings, so the row says nothing about who it is
+ * by. Any other order flattens the page, and then it has to.
+ */
+function SongTable({
+  songs,
+  showArtist = false,
+}: {
+  songs: SongWithSteps[];
+  showArtist?: boolean;
+}) {
   return (
     <ul className="song-list">
       {songs.map((song) => {
@@ -198,15 +263,99 @@ function SongTable({ songs }: { songs: SongWithSteps[] }) {
         const phase = currentPhase(song.phase_states, song.track_states);
         return (
           <li key={song.id} className="song-list__row">
-            <Link className="song-list__title" to={`/songs/${song.id}`}>
-              {song.title}
-            </Link>
+            <span className="song-list__song">
+              <Link className="song-list__title" to={`/songs/${song.id}`}>
+                {song.title}
+              </Link>
+              {showArtist && (
+                <span className="song-list__artist">{song.artist?.trim() || NO_ARTIST}</span>
+              )}
+            </span>
             <span className="song-list__phase">{phase ? PHASE_LABELS[phase] : 'Finished'}</span>
             <ProgressBar progress={progress} label={`Progress of ${song.title}`} />
           </li>
         );
       })}
     </ul>
+  );
+}
+
+/**
+ * Search, order and phase, in one line above the list. All three are held in
+ * the page rather than in the address bar: they are a way of looking at what is
+ * already loaded, not a place to come back to.
+ */
+function Toolbar({
+  query,
+  sort,
+  phase,
+  summary,
+  onQuery,
+  onSort,
+  onPhase,
+}: {
+  query: string;
+  sort: SortBy;
+  phase: PhaseFilter;
+  summary: string;
+  onQuery: (value: string) => void;
+  onSort: (value: SortBy) => void;
+  onPhase: (value: PhaseFilter) => void;
+}) {
+  return (
+    <div className="browse">
+      <label className="browse__field">
+        <span className="visually-hidden">Search songs and artists</span>
+        <input
+          type="search"
+          placeholder="Search songs and artists"
+          value={query}
+          onChange={(event) => {
+            onQuery(event.target.value);
+          }}
+        />
+      </label>
+
+      <label className="browse__field">
+        <span className="browse__label">Sort</span>
+        <select
+          value={sort}
+          onChange={(event) => {
+            onSort(event.target.value as SortBy);
+          }}
+        >
+          {(Object.keys(SORT_LABELS) as SortBy[]).map((value) => (
+            <option key={value} value={value}>
+              {SORT_LABELS[value]}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="browse__field">
+        <span className="browse__label">Phase</span>
+        <select
+          value={phase}
+          onChange={(event) => {
+            onPhase(event.target.value as PhaseFilter);
+          }}
+        >
+          <option value="all">All</option>
+          {PHASES.map((name) => (
+            <option key={name} value={name}>
+              {PHASE_LABELS[name]}
+            </option>
+          ))}
+          <option value="finished">Finished</option>
+        </select>
+      </label>
+
+      {/* Said out loud, because filtering a list is a change nobody sees happen
+          if the only sign of it is fewer rows further down. */}
+      <p className="browse__summary" role="status">
+        {summary}
+      </p>
+    </div>
   );
 }
 

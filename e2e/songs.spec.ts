@@ -117,7 +117,8 @@ test.describe('the song list', () => {
       'aria-valuenow',
       '25', // writing 10 + arrangement 10 + one of six tracks of tracking's 30
     );
-    await expect(page.getByText('Pre-production')).toBeVisible();
+    // The phase filter offers the same word, so this asks for the row's cell.
+    await expect(page.locator('.song-list__phase', { hasText: 'Pre-production' })).toBeVisible();
   });
 
   test('is accessible in both themes', async ({ page }) => {
