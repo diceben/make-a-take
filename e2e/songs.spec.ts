@@ -79,10 +79,10 @@ async function signedIn(page: Page) {
   await page.route('**/rest/v1/track_states*', (route) => route.fulfill({ status: 204, body: '' }));
 }
 
-/** The theme lives in the account menu once somebody is signed in. */
-async function switchToLight(page: Page) {
+/** The account panel is the one part of the page the checks would otherwise
+ *  never see, so it is opened before axe looks. */
+async function openAccount(page: Page) {
   await page.getByRole('button', { name: /^Account:/ }).click();
-  await page.getByRole('button', { name: 'Light theme' }).click();
 }
 
 async function analyse(page: Page) {
@@ -104,7 +104,7 @@ async function analyse(page: Page) {
 test.describe('the song list', () => {
   // Animations off: deterministic colours for the contrast checks, and it
   // proves the app honours prefers-reduced-motion.
-  test.use({ colorScheme: 'dark', contextOptions: { reducedMotion: 'reduce' } });
+  test.use({ contextOptions: { reducedMotion: 'reduce' } });
 
   test('shows each song with its phase and weighted progress', async ({ page }) => {
     await signedIn(page);
@@ -121,15 +121,13 @@ test.describe('the song list', () => {
     await expect(page.locator('.song-list__phase', { hasText: 'Pre-production' })).toBeVisible();
   });
 
-  test('is accessible in both themes', async ({ page }) => {
+  test('is accessible, panel and all', async ({ page }) => {
     await signedIn(page);
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'Sarah Kane' })).toBeVisible();
     expect((await analyse(page)).violations).toEqual([]);
 
-    // Left open on purpose: the panel is part of what has to hold up in both
-    // themes, and it is the only thing on the page axe would otherwise miss.
-    await switchToLight(page);
+    await openAccount(page);
     expect((await analyse(page)).violations).toEqual([]);
   });
 });
@@ -137,9 +135,9 @@ test.describe('the song list', () => {
 test.describe('a song', () => {
   // Animations off: deterministic colours for the contrast checks, and it
   // proves the app honours prefers-reduced-motion.
-  test.use({ colorScheme: 'dark', contextOptions: { reducedMotion: 'reduce' } });
+  test.use({ contextOptions: { reducedMotion: 'reduce' } });
 
-  test('lists every phase and track, and is accessible in both themes', async ({ page }) => {
+  test('lists every phase and track, and is accessible', async ({ page }) => {
     await signedIn(page);
     await page.goto('/songs/s1');
 
@@ -150,8 +148,7 @@ test.describe('a song', () => {
 
     expect((await analyse(page)).violations).toEqual([]);
 
-    await switchToLight(page);
-    await page.keyboard.press('Escape');
+    await openAccount(page);
     expect((await analyse(page)).violations).toEqual([]);
   });
 

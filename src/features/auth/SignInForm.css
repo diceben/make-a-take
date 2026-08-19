@@ -2,7 +2,7 @@
   max-width: 24rem;
   margin: var(--space-12) auto;
   padding: var(--space-6);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-lg);
   background: var(--surface);
 }
@@ -25,7 +25,7 @@
 .sign-in__field input {
   width: 100%;
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -46,20 +46,20 @@
 }
 
 .sign-in__message--error {
-  color: var(--status-doing);
+  color: var(--danger);
 }
 
 .sign-in__message--info {
-  color: var(--status-review);
+  color: var(--state-notq);
 }
 
 .sign-in__submit {
   width: 100%;
   padding: var(--space-3);
-  border: var(--border-width) solid var(--accent);
+  border: var(--border-width) solid var(--border-alt);
   border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: var(--accent-contrast);
+  background: var(--button);
+  color: var(--text);
   font-weight: 600;
   transition: opacity var(--transition-fast);
 }

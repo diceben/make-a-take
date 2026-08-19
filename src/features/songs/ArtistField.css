@@ -4,7 +4,7 @@
 
 .artist-field input {
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -22,7 +22,7 @@
   max-width: 20rem;
   margin: 0;
   padding: var(--space-1);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--surface);
   list-style: none;
@@ -45,7 +45,7 @@
    which row Enter would take. */
 .artist-field__option.is-active,
 .artist-field__option:hover {
-  background: var(--surface-raised);
+  background: var(--surface-alt);
 }
 
 .artist-field__option strong {

@@ -51,7 +51,7 @@ a {
   z-index: 10;
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-sm);
-  background: var(--surface-raised);
+  background: var(--surface-alt);
   color: var(--text);
   transition: top var(--transition-fast);
 }

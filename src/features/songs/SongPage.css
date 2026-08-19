@@ -22,7 +22,7 @@
 
 .song-title__edit {
   padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-muted);
@@ -37,7 +37,7 @@
 }
 
 .song-title__edit:hover {
-  background: var(--surface-raised);
+  background: var(--surface-alt);
   color: var(--text);
 }
 
@@ -57,7 +57,7 @@
 .song-title-form input,
 .song-title-form button {
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   color: var(--text);
   font: inherit;
@@ -75,7 +75,7 @@
 }
 
 .song-title-form button:not(:disabled):hover {
-  background: var(--surface-raised);
+  background: var(--surface-alt);
 }
 
 .song-title-form button:disabled {
@@ -106,13 +106,13 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-3) 0;
-  border-bottom: var(--border-width) solid var(--border);
+  border-bottom: var(--border-width) solid var(--rule);
 }
 
 /* Tracking and its six tracks are one block, so the rule goes around the lot
    rather than between the phase and the tracks it is made of. */
 .steps__group {
-  border-bottom: var(--border-width) solid var(--border);
+  border-bottom: var(--border-width) solid var(--rule);
 }
 
 .steps__group > .steps__row {
@@ -122,7 +122,7 @@
 .steps--nested {
   margin: 0 0 var(--space-2) var(--space-4);
   padding-left: var(--space-4);
-  border-left: var(--border-width) solid var(--border);
+  border-left: var(--border-width) solid var(--rule);
 }
 
 /* Shorter rows: six of these sit inside one phase, and at full height the
@@ -138,7 +138,7 @@
 
 .steps__reset {
   padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-muted);
@@ -146,7 +146,7 @@
 }
 
 .steps__reset:not(:disabled):hover {
-  background: var(--surface-raised);
+  background: var(--surface-alt);
   color: var(--text);
 }
 
@@ -171,7 +171,7 @@
    reporting a percentage and says so, in the same colour and word as any other
    finished step. */
 .steps__derived[data-complete='true'] {
-  color: var(--status-done);
+  color: var(--state-locked);
   font-weight: 600;
 }
 
@@ -183,7 +183,7 @@
 .notes textarea {
   width: 100%;
   padding: var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -203,7 +203,7 @@
   max-width: 42rem;
   margin-top: var(--space-8);
   padding-top: var(--space-4);
-  border-top: var(--border-width) solid var(--border);
+  border-top: var(--border-width) solid var(--rule);
 }
 
 .danger__question {
@@ -219,7 +219,7 @@
 
 .danger button {
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -230,11 +230,11 @@
    set by one class name would lose to it and silently do nothing.
    The colour is a second signal only: the word "Delete" is already on it. */
 .danger .danger__button {
-  color: var(--status-doing);
+  color: var(--danger);
 }
 
 .danger button:not(:disabled):hover {
-  background: var(--surface-raised);
+  background: var(--surface-alt);
 }
 
 .danger button:disabled {

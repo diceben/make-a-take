@@ -1,5 +1,4 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { ThemeToggle } from './ThemeToggle';
 import { isConfigured } from './lib/supabase';
 import { AuthProvider } from './features/auth/AuthProvider';
 import { useAuth } from './features/auth/auth-context';
@@ -33,9 +32,7 @@ export function Shell() {
 
       <header className="app-header">
         <span className="app-header__name">Make a Take</span>
-        {/* Signed out there is no account and nothing to set, so the theme
-            stands on its own until there is. */}
-        {auth.status === 'signed-in' ? <AccountMenu /> : <ThemeToggle />}
+        {auth.status === 'signed-in' && <AccountMenu />}
       </header>
 
       <main id="main" className="app-main">
