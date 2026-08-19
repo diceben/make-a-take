@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -76,13 +76,53 @@ describe('SongPage', () => {
     }
   });
 
-  it('offers no status picker for tracking, which is derived from the tracks', async () => {
+  it('offers no stepper for tracking, which is derived from the tracks', async () => {
     renderPage();
     await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
 
     expect(screen.getByText(/from the tracks below/)).toBeInTheDocument();
     // Six tracks plus six phases that carry their own status — tracking has none.
-    expect(screen.getAllByRole('radiogroup').length).toBe(PHASES.length - 1 + TRACKS.length);
+    const steppers = screen
+      .getAllByRole('button')
+      .filter((button) => /: (To do|In progress|Needs review|Done)\./.test(button.ariaLabel ?? ''));
+    expect(steppers.length).toBe(PHASES.length - 1 + TRACKS.length);
+  });
+
+  it('moves a step on by one with each press, and wraps round', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    const writing = () => screen.getByRole('button', { name: /^Writing:/ });
+    expect(writing()).toHaveAccessibleName('Writing: To do. Next: In progress');
+
+    await user.click(writing());
+    expect(writing()).toHaveAccessibleName('Writing: In progress. Next: Needs review');
+    expect(data.setPhaseStatus).toHaveBeenCalledWith(auth.client, 'p-writing', 'doing');
+  });
+
+  it('steps backwards with the left arrow, so done is not a one-way door', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.getSong).mockResolvedValue(makeSong({ mixing: 'done' }));
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    const mixing = screen.getByRole('button', { name: /^Mixing:/ });
+    mixing.focus();
+    await user.keyboard('{ArrowLeft}');
+
+    expect(data.setPhaseStatus).toHaveBeenCalledWith(auth.client, 'p-mixing', 'review');
+  });
+
+  it('says tracking is done once all six tracks are in', async () => {
+    const finished: Partial<Record<string, StepStatus>> = {};
+    for (const track of TRACKS) finished[track] = 'done';
+    vi.mocked(data.getSong).mockResolvedValue(makeSong(finished));
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
+
+    expect(screen.getByText('● Done — all six tracks')).toBeInTheDocument();
+    expect(screen.queryByText(/from the tracks below/)).toBeNull();
   });
 
   it('updates the bar as soon as a phase is set, before the server answers', async () => {
@@ -93,11 +133,14 @@ describe('SongPage', () => {
     const bar = screen.getByRole('progressbar', { name: 'Progress of Opening Track' });
     expect(bar).toHaveAttribute('aria-valuenow', '0');
 
-    const writing = screen.getByRole('radiogroup', { name: 'Writing' });
-    await user.click(within(writing).getByRole('radio', { name: /Done/ }));
+    // Three presses: to do -> in progress -> needs review -> done.
+    const writing = () => screen.getByRole('button', { name: /^Writing:/ });
+    await user.click(writing());
+    await user.click(writing());
+    await user.click(writing());
 
     expect(bar).toHaveAttribute('aria-valuenow', '10');
-    expect(data.setPhaseStatus).toHaveBeenCalledWith(auth.client, 'p-writing', 'done');
+    expect(data.setPhaseStatus).toHaveBeenLastCalledWith(auth.client, 'p-writing', 'done');
   });
 
   it('moves tracking forward when a track is finished', async () => {
@@ -105,15 +148,17 @@ describe('SongPage', () => {
     renderPage();
     await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
 
-    const drums = screen.getByRole('radiogroup', { name: 'Drums' });
-    await user.click(within(drums).getByRole('radio', { name: /Done/ }));
+    const drums = () => screen.getByRole('button', { name: /^Drums:/ });
+    await user.click(drums());
+    await user.click(drums());
+    await user.click(drums());
 
     // one of six tracks, tracking is worth 30 -> 5% of the song
     expect(screen.getByRole('progressbar', { name: 'Progress of Opening Track' })).toHaveAttribute(
       'aria-valuenow',
       '5',
     );
-    expect(data.setTrackStatus).toHaveBeenCalledWith(auth.client, 't-drums', 'done');
+    expect(data.setTrackStatus).toHaveBeenLastCalledWith(auth.client, 't-drums', 'done');
   });
 
   it('rolls the change back and says so when the write fails', async () => {
@@ -122,8 +167,7 @@ describe('SongPage', () => {
     renderPage();
     await screen.findByRole('heading', { level: 1, name: 'Opening Track' });
 
-    const mixing = screen.getByRole('radiogroup', { name: 'Mixing' });
-    await user.click(within(mixing).getByRole('radio', { name: /Done/ }));
+    await user.click(screen.getByRole('button', { name: /^Mixing:/ }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('permission denied');
     await waitFor(() => {
@@ -131,7 +175,9 @@ describe('SongPage', () => {
         screen.getByRole('progressbar', { name: 'Progress of Opening Track' }),
       ).toHaveAttribute('aria-valuenow', '0');
     });
-    expect(within(mixing).getByRole('radio', { name: /To do/ })).toBeChecked();
+    expect(screen.getByRole('button', { name: /^Mixing:/ })).toHaveAccessibleName(
+      'Mixing: To do. Next: In progress',
+    );
   });
 
   it('resets a phase that has been carried too far', async () => {
@@ -185,9 +231,10 @@ describe('SongPage', () => {
     await user.click(screen.getByRole('button', { name: 'Reset Tracking' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('permission denied');
-    const drums = screen.getByRole('radiogroup', { name: 'Drums' });
     await waitFor(() => {
-      expect(within(drums).getByRole('radio', { name: /Done/ })).toBeChecked();
+      expect(screen.getByRole('button', { name: /^Drums:/ })).toHaveAccessibleName(
+        'Drums: Done. Next: To do',
+      );
     });
   });
 

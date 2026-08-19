@@ -20,13 +20,14 @@ import {
 import {
   PHASE_LABELS,
   PHASES,
+  STATUS_SYMBOLS,
   TRACK_LABELS,
   type SongWithSteps,
   type StepStatus,
 } from '../../lib/model';
 import { currentPhase, phaseProgress, songProgress, toPercent } from '../../lib/progress';
 import { ProgressBar } from './ProgressBar';
-import { StatusPicker } from './StatusPicker';
+import { StatusStepper } from './StatusStepper';
 import './SongPage.css';
 
 export function SongPage() {
@@ -180,6 +181,9 @@ export function SongPage() {
       )}
 
       <h2 className="app-section-title">Phases</h2>
+      <p className="steps__hint">
+        Press a step to move it on. Arrow keys step either way, Reset sends it back to the start.
+      </p>
       <ul className="steps">
         {PHASES.map((name) => {
           const step = song.phase_states.find((candidate) => candidate.phase === name);
@@ -190,11 +194,18 @@ export function SongPage() {
               phaseProgress('tracking', song.phase_states, song.track_states),
             );
             const untouched = song.track_states.every((track) => track.status === 'todo');
+            const complete = trackingPercent === 100;
             return (
               <li key={name} className="steps__group">
                 <div className="steps__row steps__row--derived">
                   <span className="steps__name">{PHASE_LABELS[name]}</span>
-                  <span className="steps__derived">{trackingPercent}% — from the tracks below</span>
+                  {/* The one moment in the app where something is genuinely
+                      finished rather than moved along: all six tracks in. */}
+                  <span className="steps__derived" data-complete={complete}>
+                    {complete
+                      ? `${STATUS_SYMBOLS.done} Done — all six tracks`
+                      : `${trackingPercent}% — from the tracks below`}
+                  </span>
                   <ResetButton
                     step={PHASE_LABELS[name]}
                     disabled={untouched}
@@ -204,11 +215,9 @@ export function SongPage() {
                 <ul className="steps steps--nested">
                   {song.track_states.map((track) => (
                     <li key={track.id} className="steps__row">
-                      <span className="steps__name" id={`track-${track.track}`}>
-                        {TRACK_LABELS[track.track]}
-                      </span>
-                      <StatusPicker
-                        labelledBy={`track-${track.track}`}
+                      <span className="steps__name">{TRACK_LABELS[track.track]}</span>
+                      <StatusStepper
+                        step={TRACK_LABELS[track.track]}
                         value={track.status}
                         onChange={(status) => void changeStatus('track', track.id, status)}
                       />
@@ -222,11 +231,9 @@ export function SongPage() {
           if (!step) return null;
           return (
             <li key={name} className="steps__row">
-              <span className="steps__name" id={`phase-${name}`}>
-                {PHASE_LABELS[name]}
-              </span>
-              <StatusPicker
-                labelledBy={`phase-${name}`}
+              <span className="steps__name">{PHASE_LABELS[name]}</span>
+              <StatusStepper
+                step={PHASE_LABELS[name]}
                 value={step.status}
                 onChange={(status) => void changeStatus('phase', step.id, status)}
               />

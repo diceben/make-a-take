@@ -155,10 +155,24 @@
   cursor: not-allowed;
 }
 
+.steps__hint {
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
 .steps__derived {
   color: var(--text-muted);
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
+}
+
+/* Tracking is the only phase that can finish by itself. When it does it stops
+   reporting a percentage and says so, in the same colour and word as any other
+   finished step. */
+.steps__derived[data-complete='true'] {
+  color: var(--status-done);
+  font-weight: 600;
 }
 
 .notes {
