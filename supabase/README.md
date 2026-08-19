@@ -48,7 +48,16 @@ Two files exist only for local runs and are never applied to Supabase:
 - **Access control lives in one function**, `has_song_access()`. Every policy
   calls it; no policy reasons about membership on its own. It is
   `security definer` so consulting memberships does not recurse into the
-  policies on the memberships table.
+  policies on the memberships table. Rows further from the song reach it through
+  `has_phase_access()`, `has_round_access()` and `has_decision_access()`, each of
+  which only ever reads a column that is on the row being checked.
+- **A judgement cannot be confirmed in the sitting that set it.** The trigger on
+  `decisions` clears `state_confirmed_at` whenever `state` changes, and sets it
+  only when the same stage is chosen again on a later calendar day. The day is
+  counted in UTC, which can be an hour out for somebody judging near midnight —
+  worth a stored timezone later, not worth a guess now.
+- **Going back opens a round, it deletes nothing.** `rounds` keeps every pass
+  through a phase with its decisions intact, which is why there is no reset.
 - **A song is the unit.** It carries its own `owner_id` and an optional `artist`
   string. The artist is a word on the song, not a row, so there is nothing to
   keep in step and nothing extra to grant access to.
