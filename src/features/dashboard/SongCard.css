@@ -1,0 +1,182 @@
+.card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.card:hover {
+  border-color: var(--border-control);
+  background: var(--surface-alt);
+  transform: translateY(-1px);
+}
+
+/* The whole card opens the song. A link stretched over it rather than a click
+   handler on a div, so it is a real link: focusable, and it goes somewhere with
+   the keyboard and with a middle click. */
+.card__hit {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--radius-lg);
+}
+
+.card__hit:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.card__art {
+  width: 68px;
+  height: 68px;
+  flex: none;
+}
+
+.card__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.card__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+}
+
+.card__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+}
+
+.card__facts {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.card__dot {
+  color: var(--rule-alt);
+}
+
+/* The dots sit above the stretched link so each one can be its own target —
+   the phase you want is often not the song's front door. */
+.card__phases {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  gap: var(--space-1);
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.dot__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.dot__link:hover {
+  background: var(--fill-none);
+  color: var(--text);
+}
+
+.dot__link[data-state='not_quite_there'] .dot__label {
+  color: var(--state-notq-text);
+}
+
+.dot__link[data-state='locked'] .dot__label {
+  color: var(--state-locked-text);
+}
+
+.card__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.card__bar {
+  height: 4px;
+  max-width: 16rem;
+  flex: 1;
+  border-radius: 2px;
+  background: var(--rule);
+}
+
+.card__fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width var(--transition-fast);
+}
+
+/* The bar is the picture; this is the content. Counted rather than divided —
+   a song's decisions are not equivalent, so a share of them would be a claim
+   the app cannot support. */
+.card__decided {
+  color: var(--text-second);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.card__when {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.card__next {
+  margin-top: var(--space-2);
+  color: var(--text-second);
+  font-size: var(--text-xs);
+}
+
+.card__next-label {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 46rem) {
+  .card__foot {
+    flex-wrap: wrap;
+  }
+
+  .card__bar {
+    max-width: none;
+    flex-basis: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card:hover {
+    transform: none;
+  }
+
+  .card__fill {
+    transition: none;
+  }
+}

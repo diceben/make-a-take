@@ -83,10 +83,12 @@ beforeEach(() => {
     title: 'Midnight Drive',
     artist: 'Sarah Kane',
     deadline: null,
+    genre: 'Indie',
+    bpm: 112,
+    musical_key: 'A minor',
     notes: '',
     position: 0,
-    phase_states: [],
-    track_states: [],
+    archived_at: null,
   });
   vi.mocked(data.getJourney).mockResolvedValue({
     phases: [

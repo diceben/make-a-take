@@ -1,0 +1,81 @@
+.tiles {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-8) 0 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Each tile is the question and the filter that answers it, so it is a button
+   and it looks like one you can press — not a panel with a number on it. */
+.tile {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: left;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.tile:hover {
+  border-color: var(--border-control);
+  transform: translateY(-1px);
+}
+
+.tile[aria-pressed='true'] {
+  border-color: var(--edge-dir);
+  background: var(--surface-alt);
+}
+
+.tile__label {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tile__figure {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-medium);
+  line-height: 1.1;
+}
+
+.tile__under {
+  color: var(--text-second);
+  font-size: var(--text-xs);
+}
+
+/* The figure takes the colour of what it counts. The word above it says the
+   same thing, so this only ever confirms. */
+.tile[data-kind='needs-attention'] .tile__figure {
+  color: var(--state-notq-text);
+}
+
+.tile[data-kind='completed'] .tile__figure {
+  color: var(--state-locked-text);
+}
+
+.tile[data-kind='in-progress'] .tile__figure {
+  color: var(--state-dir-text);
+}
+
+@media (max-width: 60rem) {
+  .tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile:hover {
+    transform: none;
+  }
+}

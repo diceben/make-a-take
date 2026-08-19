@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
 import { createSong, listJourneys, listSongs, setSongsArtist } from '../../lib/data';
-import { type SongWithSteps } from '../../lib/model';
+import { type Song } from '../../lib/model';
 import { canonicalArtist, knownArtists } from '../../lib/artists';
 import {
   SORT_LABELS,
@@ -27,10 +27,10 @@ import './SongsPage.css';
 /** The heading for songs that do not name an artist. */
 const NO_ARTIST = 'No artist yet';
 
-type Group = { artist: string; named: boolean; songs: SongWithSteps[] };
+type Group = { artist: string; named: boolean; songs: Song[] };
 
 /** Every song under a heading, filtered or not — see the rename that uses it. */
-function idsOfArtist(songs: SongWithSteps[], heading: string): string[] {
+function idsOfArtist(songs: Song[], heading: string): string[] {
   const wanted = heading === NO_ARTIST ? '' : heading;
   return songs.filter((song) => (song.artist?.trim() ?? '') === wanted).map((song) => song.id);
 }
@@ -43,7 +43,7 @@ function idsOfArtist(songs: SongWithSteps[], heading: string): string[] {
  * Named artists come first in alphabetical order; the songs that name nobody
  * gather at the end, where they read as something still to do.
  */
-function groupByArtist(songs: SongWithSteps[]): Group[] {
+function groupByArtist(songs: Song[]): Group[] {
   const groups = new Map<string, Group>();
 
   for (const song of songs) {
@@ -66,7 +66,7 @@ export function SongsPage() {
   const { client } = auth;
   const userId = auth.status === 'signed-in' ? auth.session.user.id : null;
 
-  const [songs, setSongs] = useState<SongWithSteps[]>([]);
+  const [songs, setSongs] = useState<Song[]>([]);
   /** Every song's phases, for the phase in hand and the count of what is locked. */
   const [journeys, setJourneys] = useState<Map<string, Phase[]>>(new Map());
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
@@ -125,9 +125,9 @@ export function SongsPage() {
   // never only the ones a filter left standing.
   const known = knownArtists(songs);
 
-  const phasesOf = (song: SongWithSteps) => journeys.get(song.id) ?? [];
-  const phaseOf = (song: SongWithSteps) => currentPhase(phasesOf(song));
-  const lockedOf = (song: SongWithSteps) => songTotals(phasesOf(song)).locked;
+  const phasesOf = (song: Song) => journeys.get(song.id) ?? [];
+  const phaseOf = (song: Song) => currentPhase(phasesOf(song));
+  const lockedOf = (song: Song) => songTotals(phasesOf(song)).locked;
 
   const visible = songs.filter(
     (song) => matchesSearch(song, query) && matchesPhase(phaseOf(song), phase),
@@ -275,9 +275,9 @@ function SongTable({
   showArtist = false,
   phasesOf,
 }: {
-  songs: SongWithSteps[];
+  songs: Song[];
   showArtist?: boolean;
-  phasesOf: (song: SongWithSteps) => Phase[];
+  phasesOf: (song: Song) => Phase[];
 }) {
   return (
     <ul className="song-list">

@@ -113,6 +113,19 @@
      same figure from the other side. A violet you can read on is a darker one. */
   --button: #2c2450;
 
+  /* The seven phases, for the ring on the dashboard and nothing else.
+     Graphics: every segment is named and counted in the list beside it, so
+     nothing here is understood only by seeing a colour. They walk one way round
+     the wheel so that neighbouring phases stay tellable apart — which is all a
+     seven-segment ring can ask of a palette. */
+  --stage-capture: #6e6e86;
+  --stage-write: #7c6bf5;
+  --stage-produce: #9d7bf0;
+  --stage-track: #c4b5fd;
+  --stage-edit: #fb923c;
+  --stage-mix: #fbbf24;
+  --stage-master: #34d399;
+
   /* Errors and refusals. The same orange as not-quite-there on purpose: a
      palette with two alarm colours has neither. */
   --danger: #fb923c;

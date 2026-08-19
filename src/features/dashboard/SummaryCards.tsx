@@ -1,0 +1,69 @@
+import type { Summary } from '../../lib/dashboard';
+import type { SongFilter } from './filters';
+import './SummaryCards.css';
+
+/**
+ * The four figures, and the four filters they stand for.
+ *
+ * Each card is a button, because each one is a question with an answer further
+ * down the page: "two need attention" is only useful if pressing it shows you
+ * which two. A figure you cannot act on is decoration.
+ */
+export function SummaryCards({
+  summary,
+  filter,
+  onFilter,
+}: {
+  summary: Summary;
+  filter: SongFilter;
+  onFilter: (next: SongFilter) => void;
+}) {
+  const cards: { key: SongFilter; label: string; figure: number; under: string }[] = [
+    {
+      key: 'all',
+      label: 'Active songs',
+      figure: summary.active,
+      under: summary.archived === 1 ? '1 archived' : `${String(summary.archived)} archived`,
+    },
+    {
+      key: 'in-progress',
+      label: 'In progress',
+      figure: summary.inProgress,
+      under: "Songs you're working on",
+    },
+    {
+      key: 'needs-attention',
+      label: 'Need attention',
+      figure: summary.needsAttention,
+      under: 'Judged, not convincing yet',
+    },
+    {
+      key: 'completed',
+      label: 'Completed',
+      figure: summary.completed,
+      under: 'Every phase signed off',
+    },
+  ];
+
+  return (
+    <ul className="tiles">
+      {cards.map((card) => (
+        <li key={card.key}>
+          <button
+            type="button"
+            className="tile"
+            data-kind={card.key}
+            aria-pressed={filter === card.key}
+            onClick={() => {
+              onFilter(card.key);
+            }}
+          >
+            <span className="tile__label">{card.label}</span>
+            <span className="tile__figure">{card.figure}</span>
+            <span className="tile__under">{card.under}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}

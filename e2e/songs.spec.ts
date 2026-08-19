@@ -39,7 +39,7 @@ test.describe('the song list', () => {
 
   test('names the phase each song is in and counts what is decided', async ({ page }) => {
     await signedIn(page);
-    await page.goto('/');
+    await page.goto('/songs');
 
     await expect(page.getByRole('heading', { name: 'Sarah Kane' })).toBeVisible();
 
@@ -54,7 +54,7 @@ test.describe('the song list', () => {
 
   test('is accessible, panel and all', async ({ page }) => {
     await signedIn(page);
-    await page.goto('/');
+    await page.goto('/songs');
     await expect(page.getByRole('heading', { name: 'Sarah Kane' })).toBeVisible();
     expect((await analyse(page)).violations).toEqual([]);
 
@@ -169,5 +169,59 @@ test.describe('a song', () => {
     await expect(page.getByRole('button', { name: 'Vocal sits in mix: Locked' })).toBeVisible();
     // Closing hands the focus back where it came from.
     await expect(page.getByRole('listbox')).toHaveCount(0);
+  });
+});
+
+test.describe('the dashboard', () => {
+  // Animations off: deterministic colours for the contrast checks, and it
+  // proves the app honours prefers-reduced-motion.
+  test.use({ contextOptions: { reducedMotion: 'reduce' } });
+
+  test('answers what you have, what wants you, and what is next', async ({ page }) => {
+    await signedIn(page);
+    await page.goto('/');
+
+    await expect(page.getByRole('heading', { level: 1, name: /^Welcome back/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Opening Track' })).toBeVisible();
+
+    // Every phase is named and stated, so the dots are never colour alone.
+    const phases = page.getByRole('list', { name: 'Phases of Opening Track' });
+    await expect(phases.getByRole('link')).toHaveCount(7);
+    await expect(phases.getByRole('link', { name: 'Mix: Not quite there' })).toBeVisible();
+
+    // No song-wide percentage. Counted instead.
+    await expect(page.locator('body')).not.toContainText(/\d+\s?%/);
+    await expect(page.getByText('2 of 4 settled')).toBeVisible();
+  });
+
+  test('filters, searches and is accessible throughout', async ({ page }) => {
+    await signedIn(page);
+    await page.goto('/');
+    await expect(page.getByRole('heading', { level: 1, name: /^Welcome back/ })).toBeVisible();
+    expect((await analyse(page)).violations).toEqual([]);
+
+    await page.getByRole('button', { name: 'Needs attention' }).click();
+    await expect(page.getByRole('heading', { name: 'Opening Track' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'The Slow One' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'All songs' }).click();
+    await page.getByPlaceholder('Search songs').fill('slow');
+    await expect(page.getByRole('heading', { name: 'The Slow One' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Opening Track' })).toHaveCount(0);
+  });
+
+  test('opens the new-song dialog and is accessible inside it', async ({ page }) => {
+    await signedIn(page);
+    await page.goto('/');
+    await expect(page.getByRole('heading', { level: 1, name: /^Welcome back/ })).toBeVisible();
+
+    await page.getByRole('button', { name: 'New song' }).click();
+    const dialog = page.getByRole('dialog', { name: 'New song' });
+    await expect(dialog).toBeVisible();
+    // The colours of the dialog are its own; axe has not seen them yet.
+    expect((await analyse(page)).violations).toEqual([]);
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
   });
 });

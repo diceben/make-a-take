@@ -28,9 +28,16 @@ test('the check', async ({ page }) => {
 
 test('the list', async ({ page }) => {
   await signedIn(page);
-  await page.goto('/');
+  await page.goto('/songs');
   await expect(page.getByRole('heading', { name: 'Sarah Kane' })).toBeVisible();
   await page.screenshot({ path: 'shots/list.png', fullPage: true });
+});
+
+test('the dashboard', async ({ page }) => {
+  await signedIn(page);
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1, name: /^Welcome back/ })).toBeVisible();
+  await page.screenshot({ path: 'shots/dashboard.png', fullPage: true });
 });
 
 test('an empty phase', async ({ page }) => {

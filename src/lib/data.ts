@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { SongWithSteps, StepStatus } from './model';
+import type { Song } from './model';
 import type { Decision, DecisionState, Journey, Note, Phase, PhaseKey } from './journey';
 
 /**
@@ -13,9 +13,8 @@ import type { Decision, DecisionState, Journey, Note, Phase, PhaseKey } from './
  */
 
 const SONG_COLUMNS = `
-  id, title, artist, deadline, notes, position,
-  phase_states (id, song_id, phase, status, note),
-  track_states (id, song_id, track, status, note)
+  id, title, artist, genre, bpm, musical_key,
+  deadline, notes, position, archived_at
 `;
 
 /** Supabase returns errors in the payload rather than throwing. */
@@ -63,7 +62,7 @@ export async function setDisplayName(
   return value;
 }
 
-export async function listSongs(client: SupabaseClient): Promise<SongWithSteps[]> {
+export async function listSongs(client: SupabaseClient): Promise<Song[]> {
   return unwrap(
     await client
       .from('songs')
@@ -73,29 +72,44 @@ export async function listSongs(client: SupabaseClient): Promise<SongWithSteps[]
   );
 }
 
-export async function getSong(client: SupabaseClient, id: string): Promise<SongWithSteps> {
+export async function getSong(client: SupabaseClient, id: string): Promise<Song> {
   return unwrap(await client.from('songs').select(SONG_COLUMNS).eq('id', id).single());
 }
 
 export async function createSong(
   client: SupabaseClient,
-  input: { title: string; artist: string; ownerId: string },
-): Promise<SongWithSteps> {
-  const artist = input.artist.trim();
+  input: {
+    title: string;
+    artist: string;
+    ownerId: string;
+    genre?: string;
+    bpm?: number | null;
+    musicalKey?: string;
+  },
+): Promise<Song> {
+  // Every one of these is optional, and an empty field is null rather than an
+  // empty string: one absence, one value.
+  const blankToNull = (value: string | undefined) => {
+    const trimmed = value?.trim() ?? '';
+    return trimmed === '' ? null : trimmed;
+  };
+
   const created = unwrap<{ id: string }>(
     await client
       .from('songs')
       .insert({
         title: input.title.trim(),
-        // No artist is null, not an empty string: one absence, one value.
-        artist: artist === '' ? null : artist,
+        artist: blankToNull(input.artist),
+        genre: blankToNull(input.genre),
+        bpm: input.bpm ?? null,
+        musical_key: blankToNull(input.musicalKey),
         owner_id: input.ownerId,
       })
       .select('id')
       .single(),
   );
-  // The seven phases and six tracks are created by a trigger, so the inserted
-  // row alone is incomplete. Read it back to get the whole song.
+  // The seven phases are created by a trigger, so the inserted row alone does
+  // not tell you what the song now is. Read it back.
   return getSong(client, created.id);
 }
 
@@ -111,34 +125,6 @@ export async function setSongsArtist(
   artist: string | null,
 ): Promise<void> {
   const { error } = await client.from('songs').update({ artist }).in('id', ids);
-  if (error) throw new Error(error.message);
-}
-
-export async function setPhaseStatus(
-  client: SupabaseClient,
-  id: string,
-  status: StepStatus,
-): Promise<void> {
-  const { error } = await client.from('phase_states').update({ status }).eq('id', id);
-  if (error) throw new Error(error.message);
-}
-
-export async function setTrackStatus(
-  client: SupabaseClient,
-  id: string,
-  status: StepStatus,
-): Promise<void> {
-  const { error } = await client.from('track_states').update({ status }).eq('id', id);
-  if (error) throw new Error(error.message);
-}
-
-/** Resetting the tracking phase means all six tracks, in one write. */
-export async function setTrackStatuses(
-  client: SupabaseClient,
-  ids: string[],
-  status: StepStatus,
-): Promise<void> {
-  const { error } = await client.from('track_states').update({ status }).in('id', ids);
   if (error) throw new Error(error.message);
 }
 
@@ -358,6 +344,51 @@ export async function listJourneys(client: SupabaseClient): Promise<Map<string, 
   );
 
   const bySong = new Map<string, Phase[]>();
+  for (const row of rows) {
+    const list = bySong.get(row.song_id) ?? [];
+    list.push(row);
+    bySong.set(row.song_id, list);
+  }
+  return bySong;
+}
+
+/** Setting a song aside, and taking it back out. Never a delete. */
+export async function setSongArchived(
+  client: SupabaseClient,
+  id: string,
+  archived: boolean,
+): Promise<string | null> {
+  const at = archived ? new Date().toISOString() : null;
+  const { data, error } = await client
+    .from('songs')
+    .update({ archived_at: at })
+    .eq('id', id)
+    .select('id');
+
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) {
+    throw new Error('That song was not changed. You may only be able to view it.');
+  }
+  return at;
+}
+
+/**
+ * Every note of every song the caller can see, for the dashboard's activity.
+ *
+ * One request rather than one per song. Row level security already limits it to
+ * what they may read, and a catalogue of songs is not long enough to page.
+ */
+export async function listNotes(client: SupabaseClient): Promise<Map<string, Note[]>> {
+  const rows = unwrap<(Note & { song_id: string })[]>(
+    await client
+      .from('notes')
+      .select(
+        'song_id, id, body, created_at, origin_phase, target_phase, for_next_song, resolved_at',
+      )
+      .order('created_at', { ascending: false }),
+  );
+
+  const bySong = new Map<string, Note[]>();
   for (const row of rows) {
     const list = bySong.get(row.song_id) ?? [];
     list.push(row);
