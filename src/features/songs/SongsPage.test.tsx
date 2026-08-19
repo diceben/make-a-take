@@ -106,7 +106,10 @@ describe('SongsPage', () => {
   it('names the phase each song is sitting on', async () => {
     renderPage();
     await screen.findByRole('link', { name: 'Opening Track' });
-    expect(screen.getByText('Pre-production')).toBeInTheDocument();
+    // The phase filter offers the same word, so this asks for the row's cell.
+    expect(
+      screen.getByText('Pre-production', { selector: '.song-list__phase' }),
+    ).toBeInTheDocument();
   });
 
   it('says so when there is nothing at all', async () => {
@@ -328,6 +331,91 @@ describe('SongsPage', () => {
       title: 'Third Song',
       artist: 'Sarah Kane',
       ownerId: 'user-1',
+    });
+  });
+
+  it('searches over titles and artists at once', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.listSongs).mockResolvedValue([
+      song('s1', 'Opening Track', 'Sarah Kane'),
+      song('s2', 'Bell Tower', 'Bell Foundry'),
+    ]);
+    renderPage();
+    await screen.findByRole('link', { name: 'Opening Track' });
+
+    await user.type(screen.getByPlaceholderText('Search songs and artists'), 'foundry');
+
+    expect(screen.getByRole('link', { name: 'Bell Tower' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Opening Track' })).toBeNull();
+    expect(screen.getByText('1 of 2 songs')).toBeInTheDocument();
+  });
+
+  it('keeps only the songs sitting on the chosen phase', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.listSongs).mockResolvedValue([
+      song('s1', 'Opening Track', 'Sarah Kane', { writing: 'done', arrangement: 'done' }),
+      song('s2', 'The Slow One', 'Sarah Kane'),
+    ]);
+    renderPage();
+    await screen.findByRole('link', { name: 'Opening Track' });
+
+    await user.selectOptions(screen.getByLabelText('Phase'), 'preproduction');
+
+    expect(screen.getByRole('link', { name: 'Opening Track' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'The Slow One' })).toBeNull();
+  });
+
+  it('drops the headings and names the artist in the row for the other orders', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.listSongs).mockResolvedValue([
+      song('s1', 'Opening Track', 'Sarah Kane', { writing: 'done' }),
+      song('s2', 'Bell Tower', 'Bell Foundry'),
+    ]);
+    renderPage();
+    await screen.findByRole('link', { name: 'Opening Track' });
+
+    await user.selectOptions(screen.getByLabelText('Sort'), 'progress');
+
+    expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
+    const links = screen.getAllByRole('link').map((link) => link.textContent);
+    expect(links).toEqual(['Opening Track', 'Bell Tower']);
+    expect(screen.getByText('Sarah Kane')).toBeInTheDocument();
+  });
+
+  it('offers a way out when a filter leaves nothing', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    await user.type(screen.getByPlaceholderText('Search songs and artists'), 'nothing like this');
+    expect(screen.getByText(/Nothing matches that/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear the filters' }));
+    expect(screen.getByRole('link', { name: 'Opening Track' })).toBeInTheDocument();
+  });
+
+  it('renames every song of an artist, including the ones a filter is hiding', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.setSongsArtist).mockResolvedValue(undefined);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Sarah Kane' });
+
+    // Only one of Sarah Kane's two songs survives this search.
+    await user.type(screen.getByPlaceholderText('Search songs and artists'), 'Opening');
+    expect(screen.queryByRole('link', { name: 'The Slow One' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Edit Sarah Kane' }));
+    const field = screen.getByLabelText('Artist name');
+    await user.clear(field);
+    await user.type(field, 'Sarah Kane Trio');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(data.setSongsArtist).toHaveBeenCalledWith(
+        auth.client,
+        ['s1', 's2'],
+        'Sarah Kane Trio',
+      );
     });
   });
 
