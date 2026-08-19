@@ -71,7 +71,9 @@ const journeyFor = (songId: string, key: (typeof PHASE_KEYS)[number] | null = 'w
       {
         id: `${songId}-${phaseKey}-r1`,
         number: 1,
+        opened_at: '2026-08-01T10:00:00Z',
         closed_at: null,
+        reopen_reason: null,
         decisions:
           phaseKey === key
             ? [

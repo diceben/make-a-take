@@ -1,0 +1,203 @@
+/* One column, narrower than the phase it came from. Stopping to consider a pass
+   is a different kind of reading from working down a list, and the measure
+   should say so before a word is read. */
+.check {
+  max-width: 46rem;
+}
+
+.check__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.check__badge {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: none;
+  place-items: center;
+  border: var(--border-width) solid var(--edge-dir);
+  border-radius: var(--radius-md);
+  background: var(--fill-dir);
+  color: var(--accent-soft);
+}
+
+.check__icon {
+  width: 26px;
+  height: 26px;
+}
+
+.check__eyebrow {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.check__title {
+  margin-top: var(--space-1);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+}
+
+.check__span {
+  margin-top: var(--space-2);
+  color: var(--text-second);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.check__reason {
+  margin-top: var(--space-1);
+  color: var(--state-notq-text);
+  font-size: var(--text-sm);
+}
+
+.check__count {
+  padding-bottom: var(--space-4);
+  border-bottom: var(--border-width) solid var(--rule);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+}
+
+.check__count--closed {
+  color: var(--state-locked-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-normal);
+}
+
+.check__block {
+  margin-top: var(--space-6);
+}
+
+.check__block h2 {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+}
+
+.check__note {
+  margin-top: var(--space-2);
+  max-width: 34rem;
+  color: var(--text-second);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.check__empty {
+  margin-top: var(--space-2);
+  color: var(--state-locked-text);
+  font-size: var(--text-sm);
+}
+
+.check__decisions {
+  margin: var(--space-4) 0 0;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  list-style: none;
+}
+
+.check__once {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.check__once li {
+  position: relative;
+  padding: var(--space-1) 0 var(--space-1) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.check__once li::before {
+  position: absolute;
+  left: 0;
+  top: 0.85em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--state-feels);
+  content: '';
+}
+
+/* ----------------------------------------------------------- the decision */
+
+.check__actions {
+  margin-top: var(--space-8);
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--rule);
+}
+
+.check__close {
+  padding: var(--space-3) var(--space-6);
+  border: var(--border-width) solid var(--edge-dir);
+  border-radius: var(--radius-sm);
+  background: var(--button);
+  color: var(--text);
+  font-size: var(--text-sm);
+  transition: background var(--transition-fast);
+}
+
+.check__close:hover:not(:disabled) {
+  background: var(--edge-dir);
+}
+
+.check__close:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Said plainly and once. A closing that needed a warning would be a closing
+   that could lose something, and this one cannot. */
+.check__fineprint {
+  margin-top: var(--space-3);
+  max-width: 34rem;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.check__reopen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-8);
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--rule);
+}
+
+.check__label {
+  width: 100%;
+  color: var(--text-second);
+  font-size: var(--text-sm);
+}
+
+.check__reopen input {
+  min-width: 18rem;
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+.check__reopen button {
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+
+.check__reopen button[type='submit'] {
+  border-color: var(--edge-dir);
+  background: var(--button);
+}
