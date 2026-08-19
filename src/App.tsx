@@ -6,6 +6,7 @@ import { useAuth } from './features/auth/auth-context';
 import { SignInForm } from './features/auth/SignInForm';
 import { SongsPage } from './features/songs/SongsPage';
 import { SongPage } from './features/songs/SongPage';
+import { AccountMenu } from './features/account/AccountMenu';
 import './App.css';
 
 export function App() {
@@ -32,18 +33,9 @@ export function Shell() {
 
       <header className="app-header">
         <span className="app-header__name">Make a Take</span>
-        <div className="app-header__actions">
-          {auth.status === 'signed-in' && (
-            <button
-              type="button"
-              className="app-header__signout"
-              onClick={() => void auth.signOut()}
-            >
-              Sign out
-            </button>
-          )}
-          <ThemeToggle />
-        </div>
+        {/* Signed out there is no account and nothing to set, so the theme
+            stands on its own until there is. */}
+        {auth.status === 'signed-in' ? <AccountMenu /> : <ThemeToggle />}
       </header>
 
       <main id="main" className="app-main">
