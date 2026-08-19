@@ -68,6 +68,9 @@ for (const migration of migrations) {
 
 run('applying the platform grants', () => psql(['--file', join(TESTS, 'grants.sql')]));
 
+// Shared assertions, before any suite: whichever runs first must not own them.
+run('installing the test helpers', () => psql(['--file', join(TESTS, 'helpers.sql')]));
+
 const suites = readdirSync(TESTS)
   .filter((name) => name.endsWith('.test.sql'))
   .sort();

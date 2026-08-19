@@ -35,6 +35,29 @@ Struktur **nie** im Supabase-Dashboard zusammenklicken — siehe
 
 ## Das Datenmodell
 
+**Im Umbau.** Das Modell unten (Song → Phase → Runde → Entscheidung → Step,
+plus Notizen mit Zielphase) ist ab `20260819080000` in der Datenbank. Die
+Oberfläche liest noch das alte `phase_states`/`track_states` und zieht
+schrittweise nach; eine spätere Migration wirft die alten Tabellen weg. Solange
+existieren beide Formen nebeneinander — das ist Absicht, nicht Schlamperei.
+
+Song → 7 Phasen (`capture, write, produce, track, edit, mix, master`) → Runden →
+**Entscheidungen** → Steps.
+
+- Eine **Entscheidung** wird beurteilt, nicht abgehakt: fünf Stufen
+  `not_touched, direction_set, not_quite_there, feels_right, locked`. Die
+  Verhaltensdefinition jeder Stufe gehört in den Picker — die Labels dürfen nie
+  ohne sie auftreten.
+- Ein **Step** ist überprüfbar und binär. Faustregel: würden zwei Leute
+  unabhängig dasselbe feststellen, ist es ein Step. Ein Item ist nie beides.
+- **Zurückgehen erzeugt eine Runde**, es löscht nichts. Deshalb gibt es kein
+  Reset mehr.
+- **Kein songweiter Prozentwert.** Innerhalb einer Phase `n von m locked`,
+  songweit nur gezählte Kennzahlen.
+- **Notizen tragen eine Zielphase.** Im Tracking geschrieben, im Mix gebraucht.
+
+### Das alte Modell (noch in der Oberfläche)
+
 Song → 7 feste Phasen. Spuren hängen ausschließlich in der Tracking-Phase.
 
 **Der Song ist die Einheit**, es gibt nichts darüber. Ein Song gehört einer
