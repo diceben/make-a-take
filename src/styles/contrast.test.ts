@@ -37,10 +37,24 @@ const FOREGROUNDS = [
 ] as const;
 
 /**
- * The ring and the picker dot. They repeat what the word beside them says, so
- * nothing is understood only by seeing them — 3:1 is the right bar, not 7:1.
+ * The ring, the picker dot, the focus ring. They repeat what the word beside
+ * them says, so nothing is understood only by seeing them — 3:1 is the right
+ * bar, not 7:1.
+ *
+ * --accent is in this list and deliberately not in FOREGROUNDS: it is a surface
+ * and a ring. It was once the link colour, which is text, and at 4.89 on --bg
+ * that was a real defect the browser check caught and this file did not, because
+ * a token nobody names here is a token nobody measures.
  */
-const GRAPHICS = ['state-none', 'state-dir', 'state-notq', 'state-feels', 'state-locked'] as const;
+const GRAPHICS = [
+  'accent',
+  'focus-ring',
+  'state-none',
+  'state-dir',
+  'state-notq',
+  'state-feels',
+  'state-locked',
+] as const;
 
 /**
  * Boundaries of things you operate: a field, a button, a badge. These carry
@@ -121,6 +135,12 @@ describe('the palette', () => {
     ['state-feels-text', 'fill-feels'],
     ['state-locked-text', 'fill-locked'],
     ['state-none-text', 'fill-none'],
+    // The chosen row of the picker: its definition sits on the state's own fill.
+    ['text-second', 'fill-none'],
+    ['text-second', 'fill-dir'],
+    ['text-second', 'fill-notq'],
+    ['text-second', 'fill-feels'],
+    ['text-second', 'fill-locked'],
   ] as const)('--%s on --%s', (foreground, fill) => {
     it('reaches AAA', () => {
       const ratio = contrast(palette[foreground] ?? '#000000', palette[fill] ?? '#ffffff');

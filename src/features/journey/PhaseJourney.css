@@ -1,0 +1,134 @@
+.journey {
+  width: var(--sidebar-width);
+  flex: none;
+}
+
+.journey__eyebrow,
+.journey__marker,
+.journey__totals {
+  font-size: var(--text-xs);
+}
+
+.journey__eyebrow {
+  margin-bottom: var(--space-2);
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.journey__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.journey__row {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+}
+
+.journey__row:hover {
+  background: var(--surface);
+}
+
+.journey__row--selected {
+  border-color: var(--border-alt);
+  background: var(--surface-alt);
+}
+
+.journey__line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.journey__number {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.journey__row--selected .journey__number {
+  color: var(--accent-soft);
+}
+
+.journey__name {
+  color: var(--text-second);
+  font-size: var(--text-sm);
+}
+
+.journey__row--selected .journey__name {
+  color: var(--text);
+  font-weight: var(--weight-medium);
+}
+
+/* Where the work actually is. Separate from the selected row on purpose:
+   looking at a phase is not the same as working in it. */
+.journey__here {
+  margin-left: auto;
+  color: var(--accent-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.journey__marker {
+  display: block;
+  margin-top: var(--space-1);
+  margin-left: calc(var(--space-2) + 1.4rem);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.journey__marker[data-kind='notes'] {
+  color: var(--accent-soft);
+}
+
+.journey__marker[data-kind='heard-once'] {
+  color: var(--state-feels-text);
+}
+
+.journey__marker[data-kind='closed'] {
+  color: var(--state-locked-text);
+}
+
+.journey__totals {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--rule);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* On a phone the journey is a strip that stays put while the phase scrolls. */
+@media (max-width: 60rem) {
+  .journey {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    width: auto;
+    padding: var(--space-2) 0;
+    background: var(--bg);
+  }
+
+  .journey__eyebrow,
+  .journey__totals {
+    display: none;
+  }
+
+  .journey__list {
+    display: flex;
+    gap: var(--space-2);
+    overflow-x: auto;
+  }
+
+  .journey__row {
+    white-space: nowrap;
+  }
+
+  .journey__marker {
+    margin-left: 0;
+  }
+}
