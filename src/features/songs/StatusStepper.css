@@ -5,7 +5,7 @@
   gap: var(--space-2);
   width: 100%;
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-muted);
@@ -20,24 +20,24 @@
 }
 
 .stepper:not(:disabled):hover {
-  background: var(--surface-raised);
+  background: var(--surface-alt);
 }
 
 /* Colour, symbol and word all say the same thing, so none of them carries it
    alone. To do stays muted: it is the absence of work, not a state to announce. */
 .stepper[data-status='doing'] {
   border-color: currentColor;
-  color: var(--status-doing);
+  color: var(--danger);
 }
 
 .stepper[data-status='review'] {
   border-color: currentColor;
-  color: var(--status-review);
+  color: var(--state-notq);
 }
 
 .stepper[data-status='done'] {
   border-color: currentColor;
-  color: var(--status-done);
+  color: var(--state-locked);
   font-weight: 600;
 }
 

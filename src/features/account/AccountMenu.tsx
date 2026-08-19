@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '../auth/auth-context';
 import { getProfile, setDisplayName } from '../../lib/data';
-import { ThemeToggle } from '../../ThemeToggle';
 import './AccountMenu.css';
 
 /**
@@ -96,11 +95,6 @@ export function AccountMenu() {
               setName(await setDisplayName(auth.client, userId, next));
             }}
           />
-
-          <div className="account__row">
-            <span className="account__row-label">Theme</span>
-            <ThemeToggle />
-          </div>
 
           <div className="account__about">
             <p>Make a Take — every recording step of a song, from writing to master.</p>

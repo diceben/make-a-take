@@ -12,7 +12,7 @@
   align-items: baseline;
   gap: var(--space-3);
   padding-bottom: var(--space-2);
-  border-bottom: var(--border-width) solid var(--border);
+  border-bottom: var(--border-width) solid var(--rule);
 }
 
 .artist__name {
@@ -23,7 +23,7 @@
    keyboard's path, and shows itself for the heading being pointed at. */
 .artist__edit {
   padding: var(--space-1) var(--space-2);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text-muted);
@@ -39,7 +39,7 @@
 }
 
 .artist__edit:hover {
-  background: var(--surface-raised);
+  background: var(--surface-alt);
   color: var(--text);
 }
 
@@ -60,7 +60,7 @@
 .rename-artist input,
 .rename-artist button {
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   color: var(--text);
   font: inherit;
@@ -76,7 +76,7 @@
 }
 
 .rename-artist button:not(:disabled):hover {
-  background: var(--surface-raised);
+  background: var(--surface-alt);
 }
 
 .rename-artist button:disabled {
@@ -120,7 +120,7 @@
   gap: var(--space-3);
   margin-top: var(--space-6);
   padding-bottom: var(--space-3);
-  border-bottom: var(--border-width) solid var(--border);
+  border-bottom: var(--border-width) solid var(--rule);
 }
 
 .browse__field {
@@ -137,7 +137,7 @@
 .browse__field input,
 .browse__field select {
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -199,7 +199,7 @@
 .add-song__open {
   margin-top: var(--space-4);
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -207,7 +207,7 @@
 }
 
 .add-song__open:hover {
-  background: var(--surface-raised);
+  background: var(--surface-alt);
 }
 
 .add-song {
@@ -217,13 +217,13 @@
   gap: var(--space-2);
   margin-top: var(--space-4);
   padding: var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
 }
 
 .add-song__label input {
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -232,7 +232,7 @@
 
 .add-song button {
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
@@ -245,11 +245,11 @@
 }
 
 .add-song button:not(:disabled):hover {
-  background: var(--surface-raised);
+  background: var(--surface-alt);
 }
 
 .error {
-  color: var(--status-doing);
+  color: var(--danger);
   font-size: var(--text-sm);
 }
 

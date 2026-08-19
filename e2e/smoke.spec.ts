@@ -39,18 +39,13 @@ test('the form refuses an obviously wrong address', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('does not look like an email address');
 });
 
-test.describe('a system asking for dark', () => {
+test.describe('the signed-out page', () => {
   // Animations off: deterministic colours for the contrast checks, and it
   // proves the app honours prefers-reduced-motion.
-  test.use({ colorScheme: 'dark', contextOptions: { reducedMotion: 'reduce' } });
+  test.use({ contextOptions: { reducedMotion: 'reduce' } });
 
-  test('starts dark and stays accessible in both themes', async ({ page }) => {
+  test('is accessible', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    expect((await analyse(page)).violations).toEqual([]);
-
-    await page.getByRole('button', { name: 'Light theme' }).click();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     expect((await analyse(page)).violations).toEqual([]);
   });
 
@@ -61,20 +56,12 @@ test.describe('a system asking for dark', () => {
     expect((await analyse(page)).violations).toEqual([]);
   });
 
-  test('remembers the theme across a reload', async ({ page }) => {
+  // One palette now, so there is nothing to remember across a reload and no
+  // system preference to follow. The page looks the same either way.
+  test('ignores what the system asks for', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
     await page.goto('/');
-    await page.getByRole('button', { name: 'Light theme' }).click();
-    await page.reload();
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  });
-});
-
-test.describe('a system asking for light', () => {
-  test.use({ colorScheme: 'light' });
-
-  test('starts light', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    expect((await analyse(page)).violations).toEqual([]);
   });
 });
 

@@ -4,45 +4,67 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * Reads the real token file and checks every foreground against every surface it
- * can actually sit on, in both themes.
+ * can actually sit on.
  *
  * This exists because a colour checked against one background is not checked at
  * all: the first version of the status colours passed on --surface and failed on
  * --surface-raised, which is what a selected option sits on.
+ *
+ * The palette from the UI reference was measured against this before anything
+ * was built. The state colours, badge fills and --accent-soft passed as
+ * specified; three greys did not, and were respaced rather than nudged, because
+ * lifting both --text-second and --text-muted to the floor collapsed them onto
+ * one colour and took the ramp with them.
  */
 
-// Read from the project root: under Vite, import.meta.url is an http URL.
 const CSS = readFileSync(join(process.cwd(), 'src/styles/tokens.css'), 'utf8');
 
 /** Backgrounds a piece of text can end up on. */
-const BACKGROUNDS = ['bg', 'surface', 'surface-raised'] as const;
+const BACKGROUNDS = ['bg', 'surface', 'surface-alt'] as const;
 
-/** Text tokens, which must reach AAA (7:1). */
+/** Everything that is read as text, and must reach AAA (7:1). */
 const FOREGROUNDS = [
   'text',
+  'text-second',
   'text-muted',
-  'status-todo',
-  'status-doing',
-  'status-review',
-  'status-done',
-  'accent',
+  'accent-soft',
+  'danger',
+  'state-none-text',
+  'state-dir-text',
+  'state-notq-text',
+  'state-feels-text',
+  'state-locked-text',
 ] as const;
 
-const TEXT_MINIMUM = 7;
-const UI_MINIMUM = 3; // borders and other non-text boundaries
+/**
+ * The ring and the picker dot. They repeat what the word beside them says, so
+ * nothing is understood only by seeing them — 3:1 is the right bar, not 7:1.
+ */
+const GRAPHICS = ['state-none', 'state-dir', 'state-notq', 'state-feels', 'state-locked'] as const;
 
-function tokensOf(theme: 'dark' | 'light'): Record<string, string> {
-  // The dark block is shared with :root; the light block stands alone.
-  const marker = theme === 'dark' ? ":root,\n[data-theme='dark']" : "[data-theme='light']";
-  const start = CSS.indexOf(marker);
-  expect(start, `no ${theme} block in tokens.css`).toBeGreaterThan(-1);
+/**
+ * Boundaries of things you operate: a field, a button, a badge. These carry
+ * meaning by being there, so they answer to 3:1.
+ *
+ * --rule and --rule-alt are deliberately not in this list. They separate rows
+ * and nothing is understood only by seeing them; holding a hairline to 3:1
+ * would make the page a grid of wires.
+ */
+const CONTROL_BORDERS = ['border-control', 'border-alt'] as const;
+
+const TEXT_MINIMUM = 7;
+const UI_MINIMUM = 3;
+
+function tokens(): Record<string, string> {
+  const start = CSS.indexOf(':root');
+  expect(start, 'no :root block in tokens.css').toBeGreaterThan(-1);
 
   const block = CSS.slice(start, CSS.indexOf('}', start));
-  const tokens: Record<string, string> = {};
+  const found: Record<string, string> = {};
   for (const [, name, value] of block.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6});/gi)) {
-    if (name && value) tokens[name] = value;
+    if (name && value) found[name] = value;
   }
-  return tokens;
+  return found;
 }
 
 function luminance(hex: string): number {
@@ -59,27 +81,50 @@ function contrast(a: string, b: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-describe.each(['dark', 'light'] as const)('%s theme', (theme) => {
-  const tokens = tokensOf(theme);
+describe('the palette', () => {
+  const palette = tokens();
 
   it('defines every token the app uses', () => {
-    for (const name of [...FOREGROUNDS, ...BACKGROUNDS, 'border']) {
-      expect(tokens[name], `--${name} missing from the ${theme} theme`).toBeDefined();
+    for (const name of [...FOREGROUNDS, ...BACKGROUNDS, ...CONTROL_BORDERS, ...GRAPHICS]) {
+      expect(palette[name], `--${name} missing`).toBeDefined();
     }
   });
 
   describe.each(FOREGROUNDS)('--%s', (foreground) => {
     it.each(BACKGROUNDS)('reaches AAA on --%s', (background) => {
-      const ratio = contrast(tokens[foreground] ?? '#000000', tokens[background] ?? '#ffffff');
-      expect(
-        Number(ratio.toFixed(2)),
-        `--${foreground} on --${background} in the ${theme} theme`,
-      ).toBeGreaterThanOrEqual(TEXT_MINIMUM);
+      const ratio = contrast(palette[foreground] ?? '#000000', palette[background] ?? '#ffffff');
+      expect(Number(ratio.toFixed(2)), `--${foreground} on --${background}`).toBeGreaterThanOrEqual(
+        TEXT_MINIMUM,
+      );
     });
   });
 
-  it.each(BACKGROUNDS)('has a visible border on --%s', (background) => {
-    const ratio = contrast(tokens['border'] ?? '#000000', tokens[background] ?? '#ffffff');
-    expect(Number(ratio.toFixed(2))).toBeGreaterThanOrEqual(UI_MINIMUM);
+  describe.each([...CONTROL_BORDERS, ...GRAPHICS])('--%s', (border) => {
+    it.each(BACKGROUNDS)('is visible on --%s', (background) => {
+      const ratio = contrast(palette[border] ?? '#000000', palette[background] ?? '#ffffff');
+      expect(Number(ratio.toFixed(2)), `--${border} on --${background}`).toBeGreaterThanOrEqual(
+        UI_MINIMUM,
+      );
+    });
+  });
+
+  /**
+   * Surfaces that only ever carry one colour of text: a badge, the filled
+   * button. Checking those against every foreground would fail on combinations
+   * that cannot occur — so they are checked as the pairs they actually are, and
+   * the pairing is what stops a fill from drifting away from its word.
+   */
+  describe.each([
+    ['text', 'button'],
+    ['state-dir-text', 'fill-dir'],
+    ['state-notq-text', 'fill-notq'],
+    ['state-feels-text', 'fill-feels'],
+    ['state-locked-text', 'fill-locked'],
+    ['state-none-text', 'fill-none'],
+  ] as const)('--%s on --%s', (foreground, fill) => {
+    it('reaches AAA', () => {
+      const ratio = contrast(palette[foreground] ?? '#000000', palette[fill] ?? '#ffffff');
+      expect(Number(ratio.toFixed(2))).toBeGreaterThanOrEqual(TEXT_MINIMUM);
+    });
   });
 });

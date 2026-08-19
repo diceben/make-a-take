@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,24 +9,6 @@
       content="Track every recording step of a song — from writing to master."
     />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <script>
-      // Set the theme before first paint so the page never flashes the wrong one.
-      // Mirrors resolveTheme() in src/theme.ts — keep the two in sync.
-      (function () {
-        try {
-          var stored = localStorage.getItem('mat.theme');
-          var theme =
-            stored === 'dark' || stored === 'light'
-              ? stored
-              : window.matchMedia('(prefers-color-scheme: light)').matches
-                ? 'light'
-                : 'dark';
-          document.documentElement.dataset.theme = theme;
-        } catch {
-          document.documentElement.dataset.theme = 'dark';
-        }
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,24 +1,44 @@
 /*
  * Every colour and measurement in Make a Take lives here.
- * Never write a colour directly into a rule — add a token instead, and always
- * give it a value in BOTH themes or the other theme breaks.
+ * Never write a colour directly into a rule — add a token instead.
  *
- * Contrast budget: text tokens are >= 7:1 against --bg and --surface (WCAG AAA),
- * --border is >= 3:1 against --surface. Checked in e2e/smoke.spec.ts via axe.
+ * One theme. The app is used in a dark room in front of a screen that is
+ * already dark, and a second palette to keep in step costs something on every
+ * token added. If a light one is ever wanted it comes back as its own piece of
+ * work, not as a value guessed alongside each of these.
+ *
+ * Contrast budget, checked in src/styles/contrast.test.ts and by axe with the
+ * AAA rule switched on:
+ *   text tokens          >= 7:1 against every background they can sit on
+ *   control boundaries   >= 3:1  (--border-control, --border-alt)
+ *   decorative rules     no floor (--rule, --rule-alt) — they separate, they
+ *                        do not carry meaning, and nothing is understood only
+ *                        by seeing them
+ *
+ * The state colours, the badge fills and --accent-soft are exactly the values
+ * from the UI reference; they already clear 7:1. The three greys were lifted:
+ * as specified, --text-second sat at 5.50 and --text-muted at 3.51. Lifting
+ * both to the floor collapsed them onto the same colour, so the ramp was
+ * respaced instead — three steps that are still visibly three steps.
  */
 
 :root {
+  color-scheme: dark;
+
   /* Type */
-  --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.25rem;
-  --text-xl: 1.75rem;
-  --text-2xl: 2.25rem;
+  --text-xs: 0.6875rem; /* 11px — badges, mono captions */
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
   --leading: 1.6;
+
+  /* Two weights, and no more. */
+  --weight-normal: 400;
+  --weight-medium: 500;
 
   /* Space */
   --space-1: 0.25rem;
@@ -30,55 +50,81 @@
   --space-12: 3rem;
 
   /* Shape */
-  --radius-sm: 4px;
+  --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --border-width: 1px;
   --focus-width: 3px;
   --focus-offset: 2px;
-  --content-width: 68rem;
+  --content-width: 1180px;
+  --sidebar-width: 236px;
+  --aside-width: 250px;
+  /* Fixed, measured on the longest label. Otherwise every row shifts sideways
+     when a judgement changes. */
+  --badge-width: 140px;
 
-  /* Motion — every transition must reference this token so that
+  /* Motion — every transition and animation references this token so that
      prefers-reduced-motion can switch it off in one place. */
   --transition-fast: 120ms ease;
-}
 
-/* Dark ("studio") — the default. */
-:root,
-[data-theme='dark'] {
-  color-scheme: dark;
+  /* Surfaces */
+  --bg: #0c0c14;
+  --surface: #14141f;
+  --surface-alt: #1a1630; /* checkpoint, and the selected phase */
 
-  --bg: #14161a;
-  --surface: #1c1f26;
-  --surface-raised: #232730;
-  --border: #6a7485;
-  --text: #eef0f4;
-  --text-muted: #adb6c4;
-  --accent: #f2b73d;
-  --accent-contrast: #14161a;
-  --focus-ring: #f2b73d;
+  /* Lines. Only the control ones carry a contrast floor. */
+  --rule: #232333;
+  --rule-alt: #3d3566;
+  --border-control: #626286;
+  --border-alt: #675aa9;
 
-  --status-todo: #adb6c4;
-  --status-doing: #f2b73d;
-  --status-review: #74bcff;
-  --status-done: #5fd39a;
-}
+  /* Text */
+  --text: #f2f2f7;
+  --text-second: #c6c6d6;
+  --text-muted: #a3a3b6;
 
-[data-theme='light'] {
-  color-scheme: light;
+  /* Accent. The flat colour is a surface and a ring; as text it is
+     --accent-soft, which is what the reference badge already uses. */
+  --accent: #7c6bf5;
+  --accent-soft: #c4b5fd;
+  --accent-contrast: #0c0c14;
+  --focus-ring: #c4b5fd;
 
-  --bg: #fbfbf9;
-  --surface: #ffffff;
-  --surface-raised: #f2f2ef;
-  --border: #818892;
-  --text: #15171c;
-  --text-muted: #4a5260;
-  --accent: #6d4400;
-  --accent-contrast: #ffffff;
-  --focus-ring: #6d4400;
+  /* The five stages, in order. These are the ring and the dot — graphics that
+     repeat what the word next to them already says, so they answer to 3:1 and
+     not to 7:1. */
+  --state-none: #6e6e86;
+  --state-dir: #7c6bf5;
+  --state-notq: #fb923c;
+  --state-feels: #fbbf24;
+  --state-locked: #34d399;
 
-  --status-todo: #4a5260;
-  --status-doing: #6d4400;
-  --status-review: #0a4f96;
-  --status-done: #095839;
+  /* The same five as words. Four of them are the graphic colour again; direction
+     set is the accent, which is too dark to read at 11px, so it takes the soft
+     accent — which is what the reference badge uses anyway. */
+  --state-none-text: #c6c6d6;
+  --state-dir-text: #c4b5fd;
+  --state-notq-text: #fb923c;
+  --state-feels-text: #fbbf24;
+  --state-locked-text: #34d399;
+
+  /* The one filled button. Dark violet with light text, as in the reference —
+     light text on the flat accent reaches only 4.89, and dark text on it is the
+     same figure from the other side. A violet you can read on is a darker one. */
+  --button: #2c2450;
+
+  /* Errors and refusals. The same orange as not-quite-there on purpose: a
+     palette with two alarm colours has neither. */
+  --danger: #fb923c;
+
+  /* Badge fills and edges, straight from the reference. */
+  --fill-none: #1a1a26;
+  --fill-dir: #1c1830;
+  --fill-notq: #2e1b0e;
+  --fill-feels: #2a2010;
+  --fill-locked: #0f2a22;
+  --edge-dir: #3d3566;
+  --edge-notq: #7a3f14;
+  --edge-feels: #6b4e12;
+  --edge-locked: #1f5f4a;
 }

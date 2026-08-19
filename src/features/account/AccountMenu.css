@@ -8,7 +8,7 @@
   width: 2.25rem;
   height: 2.25rem;
   padding: 0;
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: 50%;
   background: var(--surface);
   color: var(--text);
@@ -20,7 +20,7 @@
 }
 
 .account__avatar:hover {
-  background: var(--surface-raised);
+  background: var(--surface-alt);
 }
 
 .account__panel {
@@ -30,7 +30,7 @@
   right: 0;
   width: 18rem;
   padding: var(--space-4);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-md);
   background: var(--surface);
 }
@@ -40,7 +40,7 @@
   flex-direction: column;
   gap: var(--space-1);
   padding-bottom: var(--space-3);
-  border-bottom: var(--border-width) solid var(--border);
+  border-bottom: var(--border-width) solid var(--rule);
 }
 
 .account__name {
@@ -73,7 +73,7 @@
   flex: 1;
   min-width: 0;
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
   background: var(--bg);
   color: var(--text);
@@ -84,9 +84,9 @@
 .account__field button,
 .account__signout {
   padding: var(--space-2) var(--space-3);
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
-  background: var(--surface-raised);
+  background: var(--surface-alt);
   color: var(--text);
   font-size: var(--text-sm);
 }
@@ -113,7 +113,7 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3) 0;
-  border-top: var(--border-width) solid var(--border);
+  border-top: var(--border-width) solid var(--rule);
 }
 
 .account__row-label {
@@ -123,7 +123,7 @@
 
 .account__about {
   padding: var(--space-3) 0;
-  border-top: var(--border-width) solid var(--border);
+  border-top: var(--border-width) solid var(--rule);
   color: var(--text-muted);
   font-size: var(--text-sm);
 }

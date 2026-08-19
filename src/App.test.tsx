@@ -5,7 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import { Shell } from './App';
 import { AuthProvider } from './features/auth/AuthProvider';
-import { THEME_STORAGE_KEY } from './theme';
 import * as data from './lib/data';
 
 // The signed-in view loads the songs; this stage only cares that the
@@ -201,20 +200,5 @@ describe('signed in', () => {
     await waitFor(() =>
       expect(screen.getByRole('heading', { level: 1, name: 'Sign in' })).toBeInTheDocument(),
     );
-  });
-});
-
-describe('theme', () => {
-  it('switches and remembers the choice', async () => {
-    const user = userEvent.setup();
-    renderApp(fakeClient());
-    await screen.findByRole('heading', { level: 1, name: 'Sign in' });
-
-    expect(document.documentElement.dataset['theme']).toBe('dark');
-
-    await user.click(screen.getByRole('button', { name: 'Light theme' }));
-
-    expect(document.documentElement.dataset['theme']).toBe('light');
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
   });
 });

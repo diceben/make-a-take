@@ -9,9 +9,9 @@
   flex: 1;
   height: 0.5rem;
   min-width: 6rem;
-  border: var(--border-width) solid var(--border);
+  border: var(--border-width) solid var(--border-control);
   border-radius: var(--radius-sm);
-  background: var(--surface-raised);
+  background: var(--surface-alt);
   overflow: hidden;
 }
 
