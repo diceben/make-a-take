@@ -93,6 +93,24 @@ test.describe('a song', () => {
     await expect(page.locator('.meter')).toContainText('/ 2 decisions settled');
   });
 
+  test('closes a phase that has no decisions, straight from the card', async ({ page }) => {
+    await signedIn(page);
+    // Capture is empty for this song, as it is for every song carried over.
+    await page.goto('/songs/s1/capture');
+    await expect(
+      page.getByRole('heading', { level: 2, name: 'Capture', exact: true }),
+    ).toBeVisible();
+
+    const card = page.getByRole('region', { name: 'Capture checkpoint' });
+    await expect(card.getByText('No decisions in this round.')).toBeVisible();
+    // Nothing to review, so the act is here rather than behind a check.
+    await expect(card.getByRole('link', { name: /check/ })).toHaveCount(0);
+
+    const close = card.getByRole('button', { name: 'Close capture' });
+    await expect(close).toBeEnabled();
+    expect((await analyse(page)).violations).toEqual([]);
+  });
+
   test('goes into the check, and closes the round from it', async ({ page }) => {
     await signedIn(page);
     await page.goto('/songs/s1');

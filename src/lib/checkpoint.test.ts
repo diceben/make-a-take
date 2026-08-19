@@ -141,8 +141,10 @@ describe('what the checkpoint says', () => {
     );
   });
 
-  it('says so plainly when there is nothing to check', () => {
-    expect(summaryOf(check()!)).toBe('Nothing to check yet.');
+  it('states an empty round rather than calling it unstarted', () => {
+    // "Nothing to check yet" said the phase was waiting for something. Some
+    // phases never need a decision, and they still have to be able to end.
+    expect(summaryOf(check()!)).toBe('No decisions in this round.');
   });
 
   it('puts the span in days, because that is the unit the work has', () => {

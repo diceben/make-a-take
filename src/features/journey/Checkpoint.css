@@ -171,3 +171,28 @@
     text-align: center;
   }
 }
+
+/* Closing an empty phase happens on the card, so the card carries a button
+   rather than a link. Same shape as the link above it: it is the same act. */
+.checkpoint__close {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border-alt);
+  border-radius: var(--radius-sm);
+  background: var(--button);
+  color: var(--text);
+  font-size: var(--text-sm);
+  text-align: center;
+  transition: background var(--transition-fast);
+}
+
+.checkpoint__close:hover:not(:disabled) {
+  background: var(--edge-dir);
+}
+
+.checkpoint__close:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

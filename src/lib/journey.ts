@@ -296,7 +296,11 @@ export function markersFor(phase: Phase, notes: Note[]): Marker[] {
   const decisions = decisionsOf(phase);
   const waiting = notesWaitingIn(notes, phase.key).length;
   const counted = lockedCount(phase);
-  const closed = currentRound(phase)?.closed_at !== null && counted.total > 0;
+  // A closed round is closed whether or not anything was judged in it. Asking
+  // for decisions here left an empty phase reading "not started" after it had
+  // been signed off, which is the opposite of what happened.
+  const round = currentRound(phase);
+  const closed = round !== null && round.closed_at !== null;
 
   if (waiting > 0)
     markers.push({ kind: 'notes', text: waiting === 1 ? '1 note' : `${waiting} notes` });
