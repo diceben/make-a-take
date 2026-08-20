@@ -33,7 +33,7 @@ import { DecisionRow } from './DecisionRow';
 import { PhaseIcon } from './PhaseIcon';
 import { PhaseJourney } from './PhaseJourney';
 import { AddNote, WaitingNotes } from './PhaseNotes';
-import { ProductionCredits } from './ProductionCredits';
+import { DecisionLog } from './DecisionLog';
 import './SongJourneyPage.css';
 
 const isPhaseKey = (value: string | undefined): value is PhaseKey =>
@@ -319,7 +319,7 @@ export function SongJourneyPage() {
             />
           )}
 
-          <ProductionCredits phases={journey.phases} />
+          <DecisionLog phases={journey.phases} />
 
           <WaitingNotes
             phase={selected}

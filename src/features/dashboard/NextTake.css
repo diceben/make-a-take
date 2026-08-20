@@ -1,0 +1,120 @@
+/* The largest thing on the page after the greeting, and the only one with a
+   filled edge. There is exactly one offer here; it should look like one. */
+.take {
+  margin-top: var(--space-6);
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--edge-dir);
+  border-radius: var(--radius-lg);
+  background: var(--surface-alt);
+}
+
+.take--quiet {
+  border-color: var(--rule-alt);
+  background: var(--surface);
+}
+
+.take__eyebrow {
+  color: var(--accent-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.take__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.take__badge {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: none;
+  place-items: center;
+  border: var(--border-width) solid var(--edge-dir);
+  border-radius: var(--radius-md);
+  background: var(--fill-dir);
+  color: var(--accent-soft);
+}
+
+.take__icon {
+  width: 26px;
+  height: 26px;
+}
+
+.take__words {
+  min-width: 14rem;
+  flex: 1;
+}
+
+.take__song {
+  color: var(--text-second);
+  font-size: var(--text-sm);
+}
+
+.take__artist {
+  color: var(--text-muted);
+}
+
+/* The sentence you act on. Bigger than the song's name, because the name is
+   context and this is the instruction. */
+.take__headline {
+  margin-top: var(--space-1);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  line-height: 1.25;
+}
+
+.take__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.take__phase {
+  color: var(--accent-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.take__because {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.take--quiet .take__because {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.take__go {
+  flex: none;
+  padding: var(--space-3) var(--space-6);
+  border: var(--border-width) solid var(--border-alt);
+  border-radius: var(--radius-sm);
+  background: var(--button);
+  color: var(--text);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--transition-fast);
+}
+
+.take__go:hover {
+  background: var(--edge-dir);
+}
+
+@media (max-width: 46rem) {
+  .take__go {
+    width: 100%;
+    text-align: center;
+  }
+}

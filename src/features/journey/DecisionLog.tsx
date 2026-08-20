@@ -1,9 +1,12 @@
 import { PHASE_LABELS, creditsFor, totalMade, type Phase } from '../../lib/journey';
 import { PhaseIcon } from './PhaseIcon';
-import './ProductionCredits.css';
+import './DecisionLog.css';
 
 /**
  * What this song has cost in judgements, phase by phase.
+ *
+ * A decision log, not "production credits" — credits are a settled thing in the
+ * music business, and this is not that. It is your own record of calls made.
  *
  * A count and not a rating, and deliberately the one figure on the page that
  * only ever goes up. Everything else here asks how far there is to go; this says
@@ -12,7 +15,7 @@ import './ProductionCredits.css';
  * Phases nobody has judged are left out rather than shown as zero — a list of
  * noughts reads as a reproach, and the sidebar already says what has not begun.
  */
-export function ProductionCredits({ phases }: { phases: Phase[] }) {
+export function DecisionLog({ phases }: { phases: Phase[] }) {
   const credits = creditsFor(phases).filter((entry) => entry.made > 0);
   const total = totalMade(phases);
 
@@ -21,7 +24,7 @@ export function ProductionCredits({ phases }: { phases: Phase[] }) {
   return (
     <section className="credits" aria-labelledby="credits-heading">
       <h2 id="credits-heading" className="credits__heading">
-        Production credits
+        Decision log
       </h2>
 
       <ul className="credits__list">

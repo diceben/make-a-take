@@ -196,3 +196,48 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Progress, in the sidebar. The figure is the content and the bar is the
+   picture of it — never the other way round. */
+.checkpoint__figure {
+  margin-top: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+}
+
+.checkpoint__locked {
+  color: var(--state-locked-text);
+}
+
+.checkpoint__of {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.checkpoint__bar {
+  display: block;
+  height: 4px;
+  margin-top: var(--space-2);
+  border-radius: 2px;
+  background: var(--rule-alt);
+}
+
+.checkpoint__fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--state-locked);
+  transition: width var(--transition-fast);
+}
+
+.checkpoint__remaining {
+  margin-top: var(--space-2);
+  color: var(--text-second);
+  font-size: var(--text-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkpoint__fill {
+    transition: none;
+  }
+}

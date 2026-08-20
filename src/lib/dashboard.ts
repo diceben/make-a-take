@@ -1,5 +1,7 @@
 import {
   PHASE_KEYS,
+  PHASE_LABELS,
+  PHASE_VERBS,
   currentPhase,
   currentRound,
   decisionsOf,
@@ -178,7 +180,7 @@ export function recentActivity(
           found.push({
             id: `round-${round.id}`,
             kind: 'checkpoint',
-            text: `You closed the ${labelOf(phase.key)} checkpoint in ${song.title}`,
+            text: `You closed the ${labelOf(phase.key)} check in ${song.title}`,
             at: round.closed_at,
           });
         }
@@ -211,7 +213,7 @@ export function recentActivity(
   return found.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0)).slice(0, limit);
 }
 
-const labelOf = (key: PhaseKey) => key.charAt(0).toUpperCase() + key.slice(1);
+const labelOf = (key: PhaseKey) => PHASE_LABELS[key];
 
 /**
  * How long ago, in the words a person would use.
@@ -234,8 +236,16 @@ export function timeAgo(iso: string, now: Date = new Date()): string {
   return months === 1 ? 'Last month' : `${String(months)} months ago`;
 }
 
-/** What is worth doing next in a song, named rather than implied. */
-export function nextStep(phases: Phase[]): string | null {
+export type NextStep = { phase: PhaseKey; what: string };
+
+/**
+ * What is worth doing next in a song, and where.
+ *
+ * It returns the phase as well as the words, because a caller that only got the
+ * words had to guess the phase — and the card guessed wrong, labelling a mixing
+ * decision as writing. One answer, one place it came from.
+ */
+export function nextStep(phases: Phase[]): NextStep | null {
   const summaries = phaseSummaries(phases);
   if (summaries.every((one) => one.signedOff)) return null;
 
@@ -243,14 +253,135 @@ export function nextStep(phases: Phase[]): string | null {
   if (wanting) {
     const phase = phases.find((one) => one.key === wanting.key);
     const decision = phase ? decisionsOf(phase).find(named) : undefined;
-    return decision ? `${labelOf(wanting.key)} — ${decision.title}` : labelOf(wanting.key);
+    return { phase: wanting.key, what: decision ? decision.title : 'Something is not right yet' };
   }
 
   const open = summaries.find((one) => !one.signedOff && one.state !== 'not_touched');
-  if (open) return `${labelOf(open.key)} — carry on`;
+  if (open) return { phase: open.key, what: 'Carry on' };
 
   const first = summaries.find((one) => !one.signedOff);
-  return first ? `${labelOf(first.key)} — not started` : null;
+  return first ? { phase: first.key, what: 'Not started' } : null;
 }
 
 const named = (decision: Decision) => decision.state === 'not_quite_there' && isOpen(decision);
+
+export type NextTake = {
+  song: Song;
+  phase: PhaseKey;
+  /** The one line saying what the work is. */
+  headline: string;
+  /** The words on the button, in the imperative. */
+  action: string;
+  decided: { settled: number; total: number };
+  href: string;
+  /** Why this one and not another, for the line above the block. */
+  because: 'wanting' | 'under-way' | 'untouched';
+};
+
+/**
+ * The single next thing worth doing, across everything.
+ *
+ * This is the dashboard's answer to the only question it really has to answer,
+ * and the reason it names exactly one: a list of things you could do next is a
+ * list of ways to keep tweaking. The app's whole argument is that a song gets
+ * finished by deciding and moving on, so the screen makes one offer.
+ *
+ * The order is what a producer would pick themselves. Something judged and
+ * found wanting is the sharpest call — you already know it is not right, and it
+ * is the thing that will otherwise sit there. Then a phase already under way,
+ * because momentum is cheaper than a standing start. Only then something new.
+ */
+export function nextTake(entries: { song: Song; phases: Phase[] }[]): NextTake | null {
+  const live = entries.filter(
+    ({ song, phases }) => song.archived_at === null && standingOf(phases) !== 'completed',
+  );
+  if (live.length === 0) return null;
+
+  const build = (
+    entry: { song: Song; phases: Phase[] },
+    phase: PhaseKey,
+    headline: string,
+    action: string,
+    because: NextTake['because'],
+  ): NextTake => ({
+    song: entry.song,
+    phase,
+    headline,
+    action,
+    decided: decidedOf(entry.phases),
+    href: `/songs/${entry.song.id}/${phase}`,
+    because,
+  });
+
+  // 1. Judged, and it does not convince you. Oldest first: a decision left
+  //    unresolved for a fortnight is more overdue than one made last night.
+  const wanting = live
+    .flatMap(({ song, phases }) =>
+      phases.flatMap((phase) =>
+        decisionsOf(phase)
+          .filter((decision) => decision.state === 'not_quite_there')
+          .map((decision) => ({ song, phases, phase: phase.key, decision })),
+      ),
+    )
+    .sort((a, b) => {
+      const left = a.decision.state_set_at ?? '';
+      const right = b.decision.state_set_at ?? '';
+      return left < right ? -1 : left > right ? 1 : 0;
+    })[0];
+
+  if (wanting) {
+    return build(
+      { song: wanting.song, phases: wanting.phases },
+      wanting.phase,
+      wanting.decision.title,
+      `Back to ${PHASE_VERBS[wanting.phase]}`,
+      'wanting',
+    );
+  }
+
+  // 2. Something already under way. The most recently touched song, in the
+  //    phase it was touched in.
+  const started = live
+    .map((entry) => ({ entry, at: lastJudged(entry.phases) }))
+    .filter((one): one is { entry: (typeof live)[number]; at: string } => one.at !== null)
+    .sort((a, b) => (a.at < b.at ? 1 : -1))[0];
+
+  if (started) {
+    const phase = currentPhase(started.entry.phases);
+    const open = decisionsOf(started.entry.phases.find((one) => one.key === phase) ?? blank(phase))
+      .filter(isOpen)
+      .at(0);
+
+    return build(
+      started.entry,
+      phase,
+      open ? open.title : 'Pick up where you left off',
+      `Continue ${PHASE_VERBS[phase]}`,
+      'under-way',
+    );
+  }
+
+  // 3. Nothing judged anywhere. The first phase of the first song there is.
+  const first = live[0];
+  if (!first) return null;
+  const phase = phaseSummaries(first.phases).find((one) => !one.signedOff)?.key ?? 'capture';
+  return build(first, phase, 'Nothing decided yet', `Start ${PHASE_VERBS[phase]}`, 'untouched');
+}
+
+/** The most recent judgement anywhere in a song, or null if there is none. */
+function lastJudged(phases: Phase[]): string | null {
+  const stamps = phases
+    .flatMap(decisionsOf)
+    .map((decision) => decision.state_set_at)
+    .filter((at): at is string => at !== null);
+  return stamps.length === 0 ? null : stamps.reduce((a, b) => (a > b ? a : b));
+}
+
+/** A phase-shaped nothing, so the lookup above never has to be nullable. */
+const blank = (key: PhaseKey): Phase => ({
+  id: '',
+  key,
+  position: 0,
+  current_round: 1,
+  rounds: [],
+});

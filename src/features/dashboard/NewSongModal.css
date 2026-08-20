@@ -103,3 +103,51 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Two situations, two forms. Equal weight until one is chosen — neither is the
+   normal case, and pre-selecting one would say otherwise. */
+.modal__modes {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.modal__mode {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: left;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.modal__mode[aria-pressed='true'] {
+  border-color: var(--edge-dir);
+  background: var(--button);
+}
+
+.modal__mode-label {
+  font-size: var(--text-sm);
+}
+
+.modal__mode-blurb {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.modal__mode[aria-pressed='true'] .modal__mode-blurb {
+  color: var(--text-second);
+}
+
+.modal__idea {
+  margin-bottom: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}

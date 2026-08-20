@@ -3,6 +3,7 @@ import {
   creditsThisMonth,
   decidedOf,
   nextStep,
+  nextTake,
   phaseSummaries,
   recentActivity,
   songsByStage,
@@ -268,7 +269,7 @@ describe('recent activity', () => {
     const activity = recentActivity(entries);
     expect(activity.map((one) => one.text)).toEqual([
       'You locked "Vocal compression" in Midnight Drive',
-      'You closed the Mix checkpoint in Midnight Drive',
+      'You closed the Mix check in Midnight Drive',
       'You judged "Automation pass" in Midnight Drive',
       'You added a note in Midnight Drive',
     ]);
@@ -317,16 +318,16 @@ describe('the next step', () => {
         round({ decisions: [decision('not_quite_there', '2026-08-10T10:00:00Z', 'Vocal sits')] }),
       ],
     });
-    expect(nextStep(phases)).toBe('Mix — Vocal sits');
+    expect(nextStep(phases)).toEqual({ phase: 'mix', what: 'Vocal sits' });
   });
 
   it('points at what is under way when nothing is wanting', () => {
     const phases = journey({ write: [round({ decisions: [decision('direction_set')] })] });
-    expect(nextStep(phases)).toBe('Write — carry on');
+    expect(nextStep(phases)).toEqual({ phase: 'write', what: 'Carry on' });
   });
 
   it('points at the first phase when nothing has begun', () => {
-    expect(nextStep(journey())).toBe('Capture — not started');
+    expect(nextStep(journey())).toEqual({ phase: 'capture', what: 'Not started' });
   });
 
   it('has nothing to suggest for a song that is finished', () => {
@@ -335,5 +336,96 @@ describe('the next step', () => {
       {},
     );
     expect(nextStep(journey(allClosed))).toBeNull();
+  });
+});
+
+describe('the next take', () => {
+  const entry = (id: string, phases: Phase[]) => ({ song: song(id, `Song ${id}`), phases });
+
+  it('picks the thing you already know is not right, over anything unstarted', () => {
+    const take = nextTake([
+      entry(
+        's1',
+        journey({
+          write: [round({ decisions: [decision('direction_set', '2026-08-18T10:00:00Z')] })],
+        }),
+      ),
+      entry(
+        's2',
+        journey({
+          mix: [
+            round({
+              decisions: [decision('not_quite_there', '2026-08-01T10:00:00Z', 'Vocal sits')],
+            }),
+          ],
+        }),
+      ),
+    ]);
+
+    expect(take?.song.id).toBe('s2');
+    expect(take?.headline).toBe('Vocal sits');
+    expect(take?.because).toBe('wanting');
+    expect(take?.action).toBe('Back to mixing');
+  });
+
+  it('takes the oldest unresolved one, not the newest', () => {
+    const take = nextTake([
+      entry(
+        's1',
+        journey({
+          mix: [
+            round({
+              decisions: [
+                decision('not_quite_there', '2026-08-18T10:00:00Z', 'Recent'),
+                decision('not_quite_there', '2026-08-01T10:00:00Z', 'Been sitting there'),
+              ],
+            }),
+          ],
+        }),
+      ),
+    ]);
+
+    expect(take?.headline).toBe('Been sitting there');
+  });
+
+  it('otherwise carries on where the work was last', () => {
+    const take = nextTake([
+      entry(
+        's1',
+        journey({ write: [round({ decisions: [decision('locked', '2026-08-01T10:00:00Z')] })] }),
+      ),
+      entry(
+        's2',
+        journey({ mix: [round({ decisions: [decision('locked', '2026-08-18T10:00:00Z')] })] }),
+      ),
+    ]);
+
+    expect(take?.song.id).toBe('s2');
+    expect(take?.phase).toBe('mix');
+    expect(take?.because).toBe('under-way');
+  });
+
+  it('offers a starting point when nothing has been judged at all', () => {
+    const take = nextTake([entry('s1', journey())]);
+    expect(take?.because).toBe('untouched');
+    expect(take?.action).toBe('Start capturing');
+  });
+
+  it('has nothing to offer when every song is across the line', () => {
+    const closed = PHASE_KEYS.reduce<Partial<Record<(typeof PHASE_KEYS)[number], Round[]>>>(
+      (all, key) => ({ ...all, [key]: [round({ closed_at: '2026-08-09T10:00:00Z' })] }),
+      {},
+    );
+    expect(nextTake([entry('s1', journey(closed))])).toBeNull();
+  });
+
+  it('does not send you back to a song you have set aside', () => {
+    const archived = {
+      song: song('s1', 'Set aside', '2026-08-01T10:00:00Z'),
+      phases: journey({
+        mix: [round({ decisions: [decision('not_quite_there', '2026-08-01T10:00:00Z')] })],
+      }),
+    };
+    expect(nextTake([archived])).toBeNull();
   });
 });

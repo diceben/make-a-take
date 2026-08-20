@@ -130,6 +130,12 @@ describe('the palette', () => {
    */
   describe.each([
     ['text', 'button'],
+    // The second line on a pressed control. --text-muted sat at 5.74 here,
+    // which is how a filled background quietly takes a whole step off a ramp
+    // that was measured against the page.
+    ['text-second', 'button'],
+    ['text-second', 'fill-none'],
+    ['text-muted', 'fill-none'],
     ['state-dir-text', 'fill-dir'],
     ['state-notq-text', 'fill-notq'],
     ['state-feels-text', 'fill-feels'],

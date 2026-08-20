@@ -45,6 +45,69 @@
   flex: 1;
 }
 
+/* Where the song is and what it wants, on one line and high up. The card used
+   to lead with what a song is made of; that is how you tell two cards apart,
+   not what you came to find out. */
+.card__where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.card__phase {
+  color: var(--text-second);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.card__phase[data-state='not_quite_there'] {
+  color: var(--state-notq-text);
+}
+
+.card__phase[data-state='locked'] {
+  color: var(--state-locked-text);
+}
+
+.card__phase[data-state='direction_set'],
+.card__phase[data-state='feels_right'] {
+  color: var(--accent-soft);
+}
+
+.card__where .card__next {
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+
+/* The action, at the end of the row rather than under it. The card was mostly
+   empty on the right and the one thing to do about the song was a line of
+   grey text at the bottom. */
+.card__go {
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  flex: none;
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.card:hover .card__go {
+  border-color: var(--border-alt);
+  background: var(--button);
+}
+
 .card__top {
   display: flex;
   flex-wrap: wrap;
@@ -147,20 +210,16 @@
   white-space: nowrap;
 }
 
-.card__next {
-  margin-top: var(--space-2);
-  color: var(--text-second);
-  font-size: var(--text-xs);
-}
-
-.card__next-label {
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 @media (max-width: 46rem) {
+  .card {
+    flex-wrap: wrap;
+  }
+
+  .card__go {
+    width: 100%;
+    text-align: center;
+  }
+
   .card__foot {
     flex-wrap: wrap;
   }

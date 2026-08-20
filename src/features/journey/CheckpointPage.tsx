@@ -7,11 +7,14 @@ import {
   PHASE_KEYS,
   PHASE_LABELS,
   currentRound,
+  decisionsOf,
+  type Decision,
   type DecisionState,
   type Journey,
   type PhaseKey,
 } from '../../lib/journey';
-import { DecisionRow } from './DecisionRow';
+import { CheckDecisions } from './CheckDecisions';
+import { WRITES, useCalls, type Call } from './calls';
 import { PhaseIcon } from './PhaseIcon';
 import './CheckpointPage.css';
 
@@ -79,6 +82,27 @@ export function CheckpointPage() {
   }
 
   const back = `/songs/${id}/${selected}`;
+
+  /**
+   * Committing a sitting's calls, in one go.
+   *
+   * Written one after another rather than in parallel: the stamps are what the
+   * app later reads as "these were decided together", and firing them at once
+   * would leave that to the order the server happened to finish in.
+   */
+  const commit = async (calls: Record<string, Call>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      for (const [decisionId, call] of Object.entries(calls)) {
+        const next = WRITES[call];
+        if (next === null) continue;
+        await judge(decisionId, next);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const judge = async (decisionId: string, next: DecisionState) => {
     setError(null);
@@ -164,9 +188,11 @@ export function CheckpointPage() {
 
       {checkpoint.closedAt === null ? (
         <OpenRound
+          phase={selected}
           checkpoint={checkpoint}
+          decisions={decisionsOf(phase)}
           busy={busy}
-          onJudge={(decisionId, next) => void judge(decisionId, next)}
+          onCommit={(calls) => void commit(calls)}
           onClose={() => void close()}
         />
       ) : (
@@ -182,21 +208,31 @@ export function CheckpointPage() {
 }
 
 /**
- * The check on a round still running. Everything that is open, judgeable here,
- * and then the button that ends the pass.
+ * The check on a round still running: listen back, make your calls, commit them,
+ * and then end the pass.
+ *
+ * Two steps and not one. Deciding is the thing you came for; closing the round
+ * is what you do once the deciding is done. Rolling them into a single button
+ * would make the sitting feel like a form submission, which is exactly the
+ * feeling the checkpoint exists to replace.
  */
 function OpenRound({
+  phase,
   checkpoint,
+  decisions,
   busy,
-  onJudge,
+  onCommit,
   onClose,
 }: {
+  phase: PhaseKey;
   checkpoint: Checkpoint;
+  /** Everything in the round, so a locked decision can be shown as ground held. */
+  decisions: Decision[];
   busy: boolean;
-  onJudge: (decisionId: string, next: DecisionState) => void;
+  onCommit: (calls: Record<string, Call>) => void;
   onClose: () => void;
 }) {
-  const open = checkpoint.open;
+  const calls = useCalls();
 
   return (
     <>
@@ -204,50 +240,32 @@ function OpenRound({
         {checkpoint.locked} of {checkpoint.total} decisions locked
       </p>
 
-      <section className="check__block" aria-labelledby="check-open">
-        <h2 id="check-open">
-          {checkpoint.total === 0
-            ? 'Nothing to decide here'
-            : open.length === 0
-              ? 'Nothing is open'
-              : 'Still open'}
-        </h2>
-        {checkpoint.total === 0 ? (
-          // Not a failure state. Some phases genuinely have nothing to judge,
-          // and one that cannot be ended is one that stays open for ever.
+      {checkpoint.total === 0 ? (
+        <section className="check__block" aria-labelledby="check-open">
+          <h2 id="check-open">Nothing to decide here</h2>
+          {/* Not a failure state. Some phases genuinely have nothing to judge,
+              and one that cannot be ended is one that stays open for ever. */}
           <p className="check__note">
             This phase has no decisions in it. Some need none — an idea is caught or it is not.
             Closing records that you went through it.
           </p>
-        ) : open.length === 0 ? (
-          <p className="check__empty">
-            Every decision in this round is at least good enough to play to somebody.
-          </p>
-        ) : (
-          <>
-            <p className="check__note">
-              Settle them here, or close the round with them open — a pass can end unfinished, it
-              just should not end unseen.
-            </p>
-            <ul className="check__decisions" aria-label="Open decisions">
-              {open.map((decision) => (
-                <DecisionRow
-                  key={decision.id}
-                  decision={decision}
-                  siblings={open}
-                  onJudge={(next) => {
-                    onJudge(decision.id, next);
-                  }}
-                  onStep={() => {
-                    // Steps belong to the phase, not to the check. Judging is
-                    // the only thing this screen writes.
-                  }}
-                />
-              ))}
-            </ul>
-          </>
-        )}
-      </section>
+        </section>
+      ) : (
+        <section className="check__block" aria-labelledby="check-open">
+          <h2 id="check-open">Make your calls</h2>
+          <CheckDecisions
+            phase={phase}
+            decisions={decisions}
+            made={calls.made}
+            busy={busy}
+            onCall={calls.call}
+            onCommit={() => {
+              onCommit(calls.made);
+              calls.clear();
+            }}
+          />
+        </section>
+      )}
 
       {checkpoint.unconfirmed.length > 0 && (
         <section className="check__block" aria-labelledby="check-once">
@@ -270,7 +288,7 @@ function OpenRound({
             ? 'Closing…'
             : checkpoint.total === 0 || checkpoint.settled
               ? 'Close this round'
-              : `Close it anyway — ${String(open.length)} still open`}
+              : `Close it anyway — ${String(checkpoint.open.length)} still open`}
         </button>
         <p className="check__fineprint">
           Closing records the pass. It changes no judgement, and going back later opens a new round

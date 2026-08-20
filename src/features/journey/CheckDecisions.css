@@ -1,0 +1,163 @@
+.calls__lead {
+  margin-top: var(--space-2);
+  max-width: 40rem;
+  color: var(--text-second);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.calls {
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.calls__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-bottom: var(--border-width) solid var(--rule);
+}
+
+.calls__row:last-child {
+  border-bottom: 0;
+}
+
+.calls__title {
+  font-size: var(--text-base);
+}
+
+.calls__sub {
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.calls__options {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Three buttons, equal in weight until one is pressed. Nothing is pre-selected:
+   a default answer at a checkpoint is the app making the call for you. */
+.calls__option {
+  display: flex;
+  min-width: 7.5rem;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: left;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.calls__option:hover:not(:disabled) {
+  background: var(--surface-alt);
+}
+
+.calls__label {
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+
+.calls__blurb {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+/* Green means locked and only locked, here as everywhere. */
+.calls__option[data-call='keep'][aria-pressed='true'] {
+  border-color: var(--edge-locked);
+  background: var(--fill-locked);
+}
+
+.calls__option[data-call='keep'][aria-pressed='true'] .calls__label {
+  color: var(--state-locked-text);
+}
+
+.calls__option[data-call='rework'][aria-pressed='true'] {
+  border-color: var(--edge-notq);
+  background: var(--fill-notq);
+}
+
+.calls__option[data-call='rework'][aria-pressed='true'] .calls__label {
+  color: var(--state-notq-text);
+}
+
+.calls__option[data-call='unsure'][aria-pressed='true'] {
+  border-color: var(--border-alt);
+  background: var(--fill-none);
+}
+
+.calls__option[aria-pressed='true'] .calls__blurb {
+  color: var(--text-second);
+}
+
+.calls__option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.calls__row--done .calls__title {
+  color: var(--text-muted);
+}
+
+.calls__locked {
+  color: var(--state-locked-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.calls__commit {
+  margin-top: var(--space-6);
+}
+
+.calls__button {
+  padding: var(--space-3) var(--space-6);
+  border: var(--border-width) solid var(--edge-locked);
+  border-radius: var(--radius-sm);
+  background: var(--fill-locked);
+  color: var(--state-locked-text);
+  font-size: var(--text-sm);
+  transition: background var(--transition-fast);
+}
+
+.calls__button:hover:not(:disabled) {
+  background: var(--edge-locked);
+  color: var(--text);
+}
+
+.calls__button:disabled {
+  border-color: var(--rule-alt);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.calls__fine {
+  margin-top: var(--space-3);
+  max-width: 38rem;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+@media (max-width: 46rem) {
+  .calls__options {
+    width: 100%;
+  }
+
+  .calls__option {
+    min-width: 0;
+    flex: 1;
+  }
+}

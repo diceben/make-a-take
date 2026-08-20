@@ -63,8 +63,10 @@
   background: var(--state-feels);
 }
 
+/* Blue and not orange: a note is information, and orange in this app means
+   something wants work. */
 .feed__mark[data-kind='note'] {
-  background: var(--state-notq);
+  background: var(--info);
 }
 
 .feed__text {

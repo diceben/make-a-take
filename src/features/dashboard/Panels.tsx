@@ -116,12 +116,16 @@ export function SongsByStage({ counts }: { counts: { key: PhaseKey; count: numbe
 /**
  * Judgements made this month.
  *
+ * Called a decision log and not production credits: credits are a thing in the
+ * music business with a settled meaning, and this is not that. It is your own
+ * record of calls made.
+ *
  * Decisions, never points. Points are awarded by an app for behaviour it
  * approves of; a count of decisions is a fact about the work that the app had no
- * hand in. The bars are the last six months, so the figure has something to
- * be read against — and a quiet month is a quiet month, not a failure.
+ * hand in. The bars are the last six months, so the figure has something to be
+ * read against — and a quiet month is a quiet month, not a failure.
  */
-export function ProductionCredits({
+export function DecisionLog({
   thisMonth,
   months,
 }: {
@@ -133,7 +137,7 @@ export function ProductionCredits({
   return (
     <section className="credits-panel" aria-labelledby="credits-heading">
       <h2 id="credits-heading" className="panel__heading">
-        Production credits
+        Decision log
       </h2>
 
       <p className="credits-panel__month">This month</p>

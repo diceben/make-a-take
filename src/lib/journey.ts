@@ -23,7 +23,7 @@ export const PHASE_LABELS: Record<PhaseKey, string> = {
   capture: 'Capture',
   write: 'Write',
   produce: 'Produce',
-  track: 'Track',
+  track: 'Tracking',
   edit: 'Edit',
   mix: 'Mix',
   master: 'Master',
@@ -38,6 +38,22 @@ export const PHASE_SUBTITLES: Record<PhaseKey, string> = {
   edit: 'Comping, clean-up',
   mix: 'Balance, glue',
   master: 'Polish',
+};
+
+/**
+ * The phase as something you do, for a button.
+ *
+ * "Continue write" is not a sentence. A phase is a noun on a sidebar and a verb
+ * on a button, and the app should be able to say both.
+ */
+export const PHASE_VERBS: Record<PhaseKey, string> = {
+  capture: 'capturing',
+  write: 'writing',
+  produce: 'producing',
+  track: 'tracking',
+  edit: 'editing',
+  mix: 'mixing',
+  master: 'mastering',
 };
 
 /** One sentence at the head of the phase, saying what it is for. */
@@ -306,9 +322,10 @@ export function markersFor(phase: Phase, notes: Note[]): Marker[] {
     markers.push({ kind: 'notes', text: waiting === 1 ? '1 note' : `${waiting} notes` });
   if (decisions.some(heardOnce)) markers.push({ kind: 'heard-once', text: 'heard once' });
   if (phase.current_round > 1) markers.push({ kind: 'round', text: `R${phase.current_round}` });
-  if (closed) markers.push({ kind: 'closed', text: 'approved' });
+  // "Signed off" and not "approved": you are not approving somebody else's work.
+  if (closed) markers.push({ kind: 'closed', text: 'signed off' });
   else if (decisions.some((decision) => decision.state !== 'not_touched')) {
-    markers.push({ kind: 'count', text: `${counted.locked} of ${counted.total} locked` });
+    markers.push({ kind: 'count', text: `${counted.locked} / ${counted.total} locked` });
   } else {
     markers.push({ kind: 'idle', text: 'not started' });
   }

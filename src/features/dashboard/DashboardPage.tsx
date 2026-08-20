@@ -4,6 +4,7 @@ import { createSong, listJourneys, listNotes, listSongs } from '../../lib/data';
 import {
   creditsThisMonth,
   decidedOf,
+  nextTake,
   recentActivity,
   songsByStage,
   summarise,
@@ -21,7 +22,8 @@ import {
   type SongSort,
 } from './filters';
 import { NewSongModal, type NewSong } from './NewSongModal';
-import { EmptyList, NoMatches, ProductionCredits, RecentActivity, SongsByStage } from './Panels';
+import { NextTake, NoTake } from './NextTake';
+import { DecisionLog, EmptyList, NoMatches, RecentActivity, SongsByStage } from './Panels';
 import { SongCard } from './SongCard';
 import { SummaryCards } from './SummaryCards';
 import './DashboardPage.css';
@@ -133,6 +135,13 @@ export function DashboardPage() {
   }, [live, phasesOf]);
 
   const stages = useMemo(() => songsByStage(live, phasesOf), [live, phasesOf]);
+
+  // The one offer. Worked out over everything, because "what next" is a question
+  // about the catalogue, not about whichever song happens to be on top.
+  const take = useMemo(
+    () => nextTake(songs.map((song) => ({ song, phases: phasesOf(song) }))),
+    [songs, phasesOf],
+  );
   const known = useMemo(() => knownArtists(songs), [songs]);
 
   const create = async (draft: NewSong) => {
@@ -215,6 +224,20 @@ export function DashboardPage() {
         </div>
       </header>
 
+      {/* Above the figures on purpose. The counts answer "how am I doing"; this
+          answers "what now", and that is the question somebody opens the app
+          with. */}
+      {take === null ? (
+        <NoTake
+          hasSongs={songs.length > 0}
+          onNew={() => {
+            setAdding(true);
+          }}
+        />
+      ) : (
+        <NextTake take={take} />
+      )}
+
       <SummaryCards summary={summary} filter={filter} onFilter={setFilter} />
 
       <div className="dash__browse">
@@ -251,7 +274,9 @@ export function DashboardPage() {
         </label>
       </div>
 
-      <h2 className="dash__legend">Your songs</h2>
+      <h2 className="dash__legend" id="songs-heading">
+        Your songs
+      </h2>
 
       <p className="dash__count" role="status">
         {visible.length === songs.length
@@ -268,7 +293,7 @@ export function DashboardPage() {
       ) : visible.length === 0 ? (
         <NoMatches onClear={clear} />
       ) : (
-        <ul className="dash__songs">
+        <ul className="dash__songs" aria-labelledby="songs-heading">
           {visible.map((song) => (
             <SongCard
               key={song.id}
@@ -283,7 +308,7 @@ export function DashboardPage() {
       <div className="dash__panels">
         <RecentActivity activity={activity} />
         <SongsByStage counts={stages} />
-        <ProductionCredits thisMonth={credits.thisMonth} months={credits.months} />
+        <DecisionLog thisMonth={credits.thisMonth} months={credits.months} />
       </div>
 
       {adding && (

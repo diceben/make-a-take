@@ -4,13 +4,20 @@ import './NewSongModal.css';
 
 export type NewSong = { title: string; artist: string; genre: string; bpm: string; key: string };
 
+type Mode = 'song' | 'idea';
+
 /**
- * Writing down a new song.
+ * Writing down a new song — or an idea, which is not the same thing.
  *
- * Only the title is required. Everything else about a song is settled later than
- * the fact that it exists, and a form that insisted on a tempo would be asking
- * for a number to be invented — which is worse than an empty field, because an
- * invented number looks like information.
+ * Two modes, because two situations. Sometimes you know the song: it has a
+ * title, a tempo, a key, and writing them down is just admin. Sometimes there is
+ * only a shape in your head at two in the morning, and being asked for a key is
+ * being asked to invent one. An invented number is worse than an empty field,
+ * because it looks like information.
+ *
+ * So IDEA asks for as little as it can — nothing at all, if you have nothing —
+ * and SONG asks for what you have. The same row lands in the database either
+ * way; the difference is entirely in what the form has the nerve to demand.
  *
  * A dialog rather than a page: it is a short interruption you come straight back
  * from, and the list behind it is the context for what you are typing.
@@ -25,6 +32,7 @@ export function NewSongModal({
   onCreate: (song: NewSong) => Promise<void>;
 }) {
   const id = useId();
+  const [mode, setMode] = useState<Mode>('song');
   const [song, setSong] = useState<NewSong>({
     title: '',
     artist: '',
@@ -80,12 +88,18 @@ export function NewSongModal({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (song.title.trim() === '') return;
+    // An idea may genuinely have no name yet. Refusing to record it until it
+    // does is the app deciding an idea is not real until it is labelled.
+    const titled =
+      song.title.trim() === ''
+        ? { ...song, title: 'Untitled idea' }
+        : { ...song, title: song.title };
+    if (mode === 'song' && titled.title.trim() === '') return;
 
     setBusy(true);
     setError(null);
     try {
-      await onCreate(song);
+      await onCreate(mode === 'idea' ? { ...titled, genre: '', bpm: '', key: '' } : titled);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'That song was not saved.');
       setBusy(false);
@@ -111,71 +125,104 @@ export function NewSongModal({
         aria-labelledby={`${id}-title`}
       >
         <h2 id={`${id}-title`} className="modal__heading">
-          New song
+          What are we making?
         </h2>
-        <p className="modal__lead">Only the title is needed. The rest can wait.</p>
+
+        <div className="modal__modes" role="group" aria-label="What are we making?">
+          <button
+            type="button"
+            className="modal__mode"
+            aria-pressed={mode === 'song'}
+            onClick={() => {
+              setMode('song');
+            }}
+          >
+            <span className="modal__mode-label">Song</span>
+            <span className="modal__mode-blurb">I know what this is</span>
+          </button>
+          <button
+            type="button"
+            className="modal__mode"
+            aria-pressed={mode === 'idea'}
+            onClick={() => {
+              setMode('idea');
+            }}
+          >
+            <span className="modal__mode-label">Idea</span>
+            <span className="modal__mode-blurb">Just catching it</span>
+          </button>
+        </div>
 
         <form className="modal__form" onSubmit={(event) => void submit(event)}>
           <label className="modal__field">
-            <span className="modal__label">Title</span>
+            <span className="modal__label">{mode === 'idea' ? 'Call it something' : 'Title'}</span>
             <input
               ref={first}
               type="text"
               value={song.title}
-              placeholder="Midnight Drive"
+              placeholder={mode === 'idea' ? 'Untitled idea' : 'Midnight Drive'}
               onChange={(event) => {
                 set('title')(event.target.value);
               }}
             />
           </label>
 
-          <ArtistField
-            label="Artist"
-            placeholder="Artist (optional)"
-            value={song.artist}
-            known={known}
-            onChange={set('artist')}
-          />
-
-          <div className="modal__row">
-            <label className="modal__field">
-              <span className="modal__label">Genre</span>
-              <input
-                type="text"
-                value={song.genre}
-                placeholder="Indie"
-                onChange={(event) => {
-                  set('genre')(event.target.value);
-                }}
+          {mode === 'idea' ? (
+            <p className="modal__idea">
+              That is all it needs. Tempo, key and the rest can arrive when they arrive — and the
+              seven phases are waiting either way.
+            </p>
+          ) : (
+            <>
+              <ArtistField
+                label="Artist"
+                placeholder="Artist (optional)"
+                value={song.artist}
+                known={known}
+                onChange={set('artist')}
               />
-            </label>
 
-            <label className="modal__field modal__field--narrow">
-              <span className="modal__label">BPM</span>
-              <input
-                type="number"
-                min={20}
-                max={400}
-                value={song.bpm}
-                placeholder="120"
-                onChange={(event) => {
-                  set('bpm')(event.target.value);
-                }}
-              />
-            </label>
+              <div className="modal__row">
+                <label className="modal__field">
+                  <span className="modal__label">Genre</span>
+                  <input
+                    type="text"
+                    value={song.genre}
+                    placeholder="Indie"
+                    onChange={(event) => {
+                      set('genre')(event.target.value);
+                    }}
+                  />
+                </label>
 
-            <label className="modal__field modal__field--narrow">
-              <span className="modal__label">Key</span>
-              <input
-                type="text"
-                value={song.key}
-                placeholder="A minor"
-                onChange={(event) => {
-                  set('key')(event.target.value);
-                }}
-              />
-            </label>
-          </div>
+                <label className="modal__field modal__field--narrow">
+                  <span className="modal__label">BPM</span>
+                  <input
+                    type="number"
+                    min={20}
+                    max={400}
+                    value={song.bpm}
+                    placeholder="120"
+                    onChange={(event) => {
+                      set('bpm')(event.target.value);
+                    }}
+                  />
+                </label>
+
+                <label className="modal__field modal__field--narrow">
+                  <span className="modal__label">Key</span>
+                  <input
+                    type="text"
+                    value={song.key}
+                    placeholder="A minor"
+                    onChange={(event) => {
+                      set('key')(event.target.value);
+                    }}
+                  />
+                </label>
+              </div>
+            </>
+          )}
 
           {error !== null && (
             <p className="error" role="alert">
@@ -190,9 +237,9 @@ export function NewSongModal({
             <button
               type="submit"
               className="modal__create"
-              disabled={busy || song.title.trim() === ''}
+              disabled={busy || (mode === 'song' && song.title.trim() === '')}
             >
-              {busy ? 'Saving…' : 'Create song'}
+              {busy ? 'Saving…' : mode === 'idea' ? 'Catch it' : 'Create song'}
             </button>
           </div>
         </form>
