@@ -101,7 +101,7 @@ test.describe('a song', () => {
       page.getByRole('heading', { level: 2, name: 'Capture', exact: true }),
     ).toBeVisible();
 
-    const card = page.getByRole('region', { name: 'Capture checkpoint' });
+    const card = page.getByRole('region', { name: 'Capture check' });
     await expect(card.getByText('No decisions in this round.')).toBeVisible();
     // Nothing to review, so the act is here rather than behind a check.
     await expect(card.getByRole('link', { name: /check/ })).toHaveCount(0);
@@ -117,8 +117,8 @@ test.describe('a song', () => {
     await expect(page.getByRole('heading', { level: 2, name: 'Mix', exact: true })).toBeVisible();
 
     await page
-      .getByRole('region', { name: 'Mix checkpoint' })
-      .getByRole('link', { name: /Enter mix check/ })
+      .getByRole('region', { name: 'Mix check' })
+      .getByRole('link', { name: /Enter the mix check/ })
       .click();
 
     await expect(page).toHaveURL(/\/songs\/s1\/mix\/check$/);
@@ -131,6 +131,12 @@ test.describe('a song', () => {
 
     // The colours of the check are its own; axe has not seen them yet.
     expect((await analyse(page)).violations).toEqual([]);
+
+    // Three calls per decision, and nothing written until the sitting is
+    // committed — the point of a checkpoint is the sitting.
+    const calls = page.getByRole('group', { name: 'Your call on Vocal sits in mix' });
+    await calls.getByRole('button', { name: /Keep/ }).click();
+    await expect(page.getByRole('button', { name: 'Lock 1 decision' })).toBeEnabled();
 
     // Closing is offered even with two open, and says so rather than refusing.
     await expect(page.getByRole('button', { name: /Close it anyway/ })).toBeEnabled();
@@ -185,13 +191,13 @@ test.describe('the dashboard', () => {
     await expect(page.getByRole('heading', { name: 'Opening Track' })).toBeVisible();
 
     // Every phase is named and stated, so the dots are never colour alone.
-    const phases = page.getByRole('list', { name: 'Phases of Opening Track' });
+    const phases = page.getByRole('list', { name: 'Journey of Opening Track' });
     await expect(phases.getByRole('link')).toHaveCount(7);
     await expect(phases.getByRole('link', { name: 'Mix: Not quite there' })).toBeVisible();
 
     // No song-wide percentage. Counted instead.
     await expect(page.locator('body')).not.toContainText(/\d+\s?%/);
-    await expect(page.getByText('2 of 4 settled')).toBeVisible();
+    await expect(page.getByText('2 / 4 decisions made')).toBeVisible();
   });
 
   test('filters, searches and is accessible throughout', async ({ page }) => {
@@ -200,11 +206,12 @@ test.describe('the dashboard', () => {
     await expect(page.getByRole('heading', { level: 1, name: /^Welcome back/ })).toBeVisible();
     expect((await analyse(page)).violations).toEqual([]);
 
-    await page.getByRole('button', { name: 'Needs attention' }).click();
+    const chips = page.getByRole('group', { name: 'Show only' });
+    await chips.getByRole('button', { name: 'Needs a take' }).click();
     await expect(page.getByRole('heading', { name: 'Opening Track' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'The Slow One' })).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'All songs' }).click();
+    await chips.getByRole('button', { name: 'All songs' }).click();
     await page.getByPlaceholder('Search songs').fill('slow');
     await expect(page.getByRole('heading', { name: 'The Slow One' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Opening Track' })).toHaveCount(0);
@@ -216,7 +223,7 @@ test.describe('the dashboard', () => {
     await expect(page.getByRole('heading', { level: 1, name: /^Welcome back/ })).toBeVisible();
 
     await page.getByRole('button', { name: 'New song' }).click();
-    const dialog = page.getByRole('dialog', { name: 'New song' });
+    const dialog = page.getByRole('dialog', { name: 'What are we making?' });
     await expect(dialog).toBeVisible();
     // The colours of the dialog are its own; axe has not seen them yet.
     expect((await analyse(page)).violations).toEqual([]);

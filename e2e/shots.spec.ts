@@ -46,3 +46,19 @@ test('an empty phase', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 2, name: 'Capture', exact: true })).toBeVisible();
   await page.screenshot({ path: 'shots/empty-phase.png', fullPage: true });
 });
+
+test('the check moment', async ({ page }) => {
+  await signedIn(page);
+  await page.goto('/songs/s1/mix/check');
+  await expect(page.getByRole('heading', { level: 1, name: 'Mix check' })).toBeVisible();
+  await page.screenshot({ path: 'shots/check-calls.png', fullPage: true });
+});
+
+test('the new song dialog', async ({ page }) => {
+  await signedIn(page);
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1, name: /^Welcome back/ })).toBeVisible();
+  await page.getByRole('button', { name: 'New song' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.screenshot({ path: 'shots/new-song.png' });
+});

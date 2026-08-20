@@ -113,25 +113,35 @@
      same figure from the other side. A violet you can read on is a darker one. */
   --button: #2c2450;
 
+  /* Information, and nothing more: a note exists, a thing happened. Separate
+     from the four state colours so that nothing decorative borrows one of them
+     and blurs what they mean. */
+  --info: #7dd3fc;
+
   /* The seven phases, for the ring on the dashboard and nothing else.
      Graphics: every segment is named and counted in the list beside it, so
      nothing here is understood only by seeing a colour. They walk one way round
      the wheel so that neighbouring phases stay tellable apart — which is all a
-     seven-segment ring can ask of a palette. */
+     seven-segment ring can ask of a palette. Green is deliberately not among
+     them: in this app green means locked, and a phase is not locked for being
+     the one a song happens to sit in. */
   --stage-capture: #6e6e86;
   --stage-write: #7c6bf5;
   --stage-produce: #9d7bf0;
   --stage-track: #c4b5fd;
   --stage-edit: #fb923c;
   --stage-mix: #fbbf24;
-  --stage-master: #34d399;
+  --stage-master: #f0abfc;
 
   /* Errors and refusals. The same orange as not-quite-there on purpose: a
      palette with two alarm colours has neither. */
   --danger: #fb923c;
 
   /* Badge fills and edges, straight from the reference. */
-  --fill-none: #1a1a26;
+  /* A shade under the reference's #1a1a26: --text-muted on it measured 6.95,
+     and a fill that takes a whole step off the text ramp is a fill that quietly
+     lowers the floor. The difference is invisible; the ratio is not. */
+  --fill-none: #181822;
   --fill-dir: #1c1830;
   --fill-notq: #2e1b0e;
   --fill-feels: #2a2010;

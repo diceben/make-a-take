@@ -110,28 +110,80 @@ describe('the check on an open round', () => {
     expect(screen.getByText('1 of 3 decisions locked')).toBeInTheDocument();
   });
 
-  it('gathers what is still open and lets it be settled here', async () => {
+  it('asks three things about each decision, and writes none of them yet', async () => {
     const user = userEvent.setup();
-    vi.mocked(data.setDecisionState).mockResolvedValue(decision('Automation pass', 'feels_right'));
+    vi.mocked(data.setDecisionState).mockResolvedValue(decision('Automation pass', 'locked'));
     renderAt();
     await screen.findByRole('heading', { level: 1, name: 'Mix check' });
 
-    const open = screen.getByRole('list', { name: 'Open decisions' });
-    expect(within(open).getAllByRole('listitem')).toHaveLength(2);
-    // What is settled already is not repeated here — the phase is where the
-    // whole round lives.
-    expect(within(open).queryByText('Static balance')).toBeNull();
+    const list = screen.getByRole('list', { name: 'Decisions to call' });
+    // Everything in the round, locked ones included — they are the ground held.
+    expect(within(list).getAllByRole('listitem')).toHaveLength(3);
+    expect(within(list).getByText('Locked')).toBeInTheDocument();
 
-    await user.click(within(open).getByRole('button', { name: 'Automation pass: Not touched' }));
-    await user.keyboard('4');
+    const vocal = within(list).getByRole('group', { name: 'Your call on Vocal compression' });
+    await user.click(within(vocal).getByRole('button', { name: /Keep/ }));
+
+    // The point of a sitting is that nothing lands until you say so.
+    expect(data.setDecisionState).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Lock 1 decision' })).toBeEnabled();
+  });
+
+  it('commits the whole sitting at once, and says what it will do first', async () => {
+    const user = userEvent.setup();
+    vi.mocked(data.setDecisionState).mockResolvedValue(decision('Automation pass', 'locked'));
+    renderAt();
+    await screen.findByRole('heading', { level: 1, name: 'Mix check' });
+
+    const list = screen.getByRole('list', { name: 'Decisions to call' });
+    const vocal = within(list).getByRole('group', { name: 'Your call on Vocal compression' });
+    const auto = within(list).getByRole('group', { name: 'Your call on Automation pass' });
+
+    await user.click(within(vocal).getByRole('button', { name: /Rework/ }));
+    await user.click(within(auto).getByRole('button', { name: /Keep/ }));
+
+    expect(screen.getByRole('button', { name: 'Lock 1, send 1 back' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Lock 1, send 1 back' }));
 
     await waitFor(() => {
-      expect(data.setDecisionState).toHaveBeenCalledWith(
-        auth.client,
-        expect.any(String),
-        'feels_right',
-      );
+      expect(data.setDecisionState).toHaveBeenCalledTimes(2);
     });
+    expect(data.setDecisionState).toHaveBeenCalledWith(auth.client, expect.any(String), 'locked');
+    expect(data.setDecisionState).toHaveBeenCalledWith(
+      auth.client,
+      expect.any(String),
+      'not_quite_there',
+    );
+  });
+
+  it('writes nothing at all for a decision you are not sure about', async () => {
+    const user = userEvent.setup();
+    renderAt();
+    await screen.findByRole('heading', { level: 1, name: 'Mix check' });
+
+    const list = screen.getByRole('list', { name: 'Decisions to call' });
+    const vocal = within(list).getByRole('group', { name: 'Your call on Vocal compression' });
+    await user.click(within(vocal).getByRole('button', { name: /Not sure/ }));
+
+    // "Not sure" is a way of moving past something, not a state to go into, so
+    // there is nothing to commit and the button stays out of reach.
+    expect(screen.getByRole('button', { name: 'Make a call first' })).toBeDisabled();
+  });
+
+  it('takes a call back when the same one is pressed again', async () => {
+    const user = userEvent.setup();
+    renderAt();
+    await screen.findByRole('heading', { level: 1, name: 'Mix check' });
+
+    const list = screen.getByRole('list', { name: 'Decisions to call' });
+    const vocal = within(list).getByRole('group', { name: 'Your call on Vocal compression' });
+    const keep = within(vocal).getByRole('button', { name: /Keep/ });
+
+    await user.click(keep);
+    expect(keep).toHaveAttribute('aria-pressed', 'true');
+    await user.click(keep);
+    expect(keep).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Make a call first' })).toBeDisabled();
   });
 
   it('never refuses to close — it only says what closing would leave open', async () => {
@@ -155,7 +207,6 @@ describe('the check on an open round', () => {
     await screen.findByRole('heading', { level: 1, name: 'Mix check' });
 
     expect(screen.getByRole('button', { name: 'Close this round' })).toBeInTheDocument();
-    expect(screen.getByText(/Every decision in this round/)).toBeInTheDocument();
   });
 
   it('names what was judged well but heard only once', async () => {

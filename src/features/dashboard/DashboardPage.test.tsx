@@ -163,19 +163,19 @@ describe('the dashboard', () => {
     // The rule that survived the rebuild. The bar on a card is a picture; the
     // figure beside it is counted.
     expect(document.body.textContent).not.toMatch(/\d+\s?%/);
-    expect(screen.getByText('0 of 1 settled')).toBeInTheDocument();
+    expect(screen.getByText('0 / 1 decisions made')).toBeInTheDocument();
   });
 
   it('counts what is live, what wants you and what is finished', async () => {
     renderPage();
     await screen.findByRole('heading', { level: 1, name: /^Welcome back/ });
 
-    const tiles = screen.getAllByRole('button', { name: /songs|progress|attention|Completed/i });
-    const active = tiles.find((one) => one.textContent?.includes('Active songs'));
+    const tiles = screen.getAllByRole('button', { name: /Songs|works|take|Finished/i });
+    const active = tiles.find((one) => one.textContent?.includes('Songs'));
     expect(active?.textContent).toContain('3');
-    expect(active?.textContent).toContain('1 archived');
+    expect(active?.textContent).toContain('1 set aside');
 
-    const attention = tiles.find((one) => one.textContent?.includes('Need attention'));
+    const attention = tiles.find((one) => one.textContent?.includes('Needs a take'));
     expect(attention?.textContent).toContain('1');
   });
 
@@ -186,7 +186,7 @@ describe('the dashboard', () => {
 
     expect(screen.queryByRole('heading', { name: 'Desert Road' })).toBeNull();
 
-    await user.click(screen.getByRole('button', { name: 'Archived' }));
+    await user.click(screen.getByRole('button', { name: 'Set aside' }));
     expect(screen.getByRole('heading', { name: 'Desert Road' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Midnight Drive' })).toBeNull();
   });
@@ -198,7 +198,7 @@ describe('the dashboard', () => {
 
     const attention = screen
       .getAllByRole('button')
-      .find((one) => one.textContent?.includes('Need attention'));
+      .find((one) => one.textContent?.includes('Needs a take'));
     await user.click(attention as HTMLElement);
 
     expect(screen.getByRole('heading', { name: 'Midnight Drive' })).toBeInTheDocument();
@@ -245,7 +245,7 @@ describe('the dashboard', () => {
     renderPage();
     await screen.findByRole('heading', { level: 1, name: /^Welcome back/ });
 
-    const phases = screen.getByRole('list', { name: 'Phases of Midnight Drive' });
+    const phases = screen.getByRole('list', { name: 'Journey of Midnight Drive' });
     expect(within(phases).getAllByRole('listitem')).toHaveLength(7);
     // The colour is never the only thing saying what a dot is.
     expect(within(phases).getByRole('link', { name: 'Mix: Not quite there' })).toHaveAttribute(
@@ -255,10 +255,19 @@ describe('the dashboard', () => {
     expect(within(phases).getByRole('link', { name: 'Capture: Not touched' })).toBeInTheDocument();
   });
 
-  it('names the next thing worth doing', async () => {
+  it('names one next take, and only one', async () => {
     renderPage();
     await screen.findByRole('heading', { level: 1, name: /^Welcome back/ });
-    expect(screen.getByText(/Mix — Vocal sits in mix/)).toBeInTheDocument();
+
+    const take = screen.getByRole('region', { name: 'Your next take' });
+    // Judged and unconvincing beats everything merely unstarted: it is the
+    // thing you already know is wrong.
+    expect(within(take).getByText('Vocal sits in mix')).toBeInTheDocument();
+    expect(within(take).getByText('Midnight Drive', { exact: false })).toBeInTheDocument();
+    expect(within(take).getByRole('link', { name: /Back to mixing/ })).toHaveAttribute(
+      'href',
+      '/songs/s1/mix',
+    );
   });
 
   it('builds the activity out of judgements, notes and closed rounds', async () => {
@@ -271,7 +280,7 @@ describe('the dashboard', () => {
     ).toBeInTheDocument();
     expect(within(feed).getByText(/You added a note in Midnight Drive/)).toBeInTheDocument();
     expect(
-      within(feed).getByText(/You closed the Capture checkpoint in Ocean Eyes/),
+      within(feed).getByText(/You closed the Capture check in Ocean Eyes/),
     ).toBeInTheDocument();
   });
 
@@ -289,7 +298,7 @@ describe('the dashboard', () => {
     renderPage();
     await screen.findByRole('heading', { level: 1, name: /^Welcome back/ });
 
-    const credits = screen.getByRole('region', { name: 'Production credits' });
+    const credits = screen.getByRole('region', { name: 'Decision log' });
     expect(within(credits).getByText('decisions made')).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/\bXP\b|points|streak|level/i);
   });
@@ -303,7 +312,7 @@ describe('adding a song', () => {
     await screen.findByRole('heading', { level: 1, name: /^Welcome back/ });
 
     await user.click(screen.getByRole('button', { name: 'New song' }));
-    const dialog = screen.getByRole('dialog', { name: 'New song' });
+    const dialog = screen.getByRole('dialog', { name: 'What are we making?' });
 
     expect(within(dialog).getByRole('button', { name: 'Create song' })).toBeDisabled();
     await user.type(within(dialog).getByLabelText('Title'), 'New One');
@@ -342,7 +351,7 @@ describe('adding a song', () => {
     await screen.findByRole('heading', { level: 1, name: /^Welcome back/ });
 
     await user.click(screen.getByRole('button', { name: 'New song' }));
-    const dialog = screen.getByRole('dialog', { name: 'New song' });
+    const dialog = screen.getByRole('dialog', { name: 'What are we making?' });
     await user.type(within(dialog).getByLabelText('Title'), 'Doomed');
     await user.click(within(dialog).getByRole('button', { name: 'Create song' }));
 
@@ -367,8 +376,10 @@ describe('when nothing loads', () => {
   it('says what to do when there are no songs at all', async () => {
     vi.mocked(data.listSongs).mockResolvedValue([]);
     renderPage();
-    expect(await screen.findByText('No songs yet.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add your first song' })).toBeInTheDocument();
+    expect(await screen.findByText('Nothing here yet.')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Add your first song/ }).length).toBeGreaterThan(
+      0,
+    );
   });
 });
 
@@ -379,9 +390,9 @@ describe('the figures and the filters', () => {
    * to tell from the screen which.
    */
   it.each([
-    ['In progress', 'In progress'],
-    ['Need attention', 'Needs attention'],
-    ['Completed', 'Completed'],
+    ['In the works', 'In the works'],
+    ['Needs a take', 'Needs a take'],
+    ['Finished', 'Finished'],
   ])('shows exactly as many songs under %s as the tile claims', async (tileText, chipName) => {
     const user = userEvent.setup();
     renderPage();
@@ -391,6 +402,9 @@ describe('the figures and the filters', () => {
     const claimed = Number(/\d+/.exec(tile?.textContent ?? '')?.[0] ?? '-1');
 
     await user.click(screen.getByRole('button', { name: chipName }));
-    expect(screen.queryAllByRole('heading', { level: 3 })).toHaveLength(claimed);
+    const list = screen.queryByRole('list', { name: 'Your songs' });
+    expect(list === null ? 0 : within(list).queryAllByRole('heading', { level: 3 })).toHaveLength(
+      claimed,
+    );
   });
 });

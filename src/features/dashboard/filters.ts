@@ -13,19 +13,19 @@ export type SongFilter = 'all' | 'in-progress' | 'needs-attention' | 'completed'
 
 export const FILTER_LABELS: Record<SongFilter, string> = {
   all: 'All songs',
-  'in-progress': 'In progress',
-  'needs-attention': 'Needs attention',
-  completed: 'Completed',
-  archived: 'Archived',
+  'in-progress': 'In the works',
+  'needs-attention': 'Needs a take',
+  completed: 'Finished',
+  archived: 'Set aside',
 };
 
 export type SongSort = 'modified' | 'created' | 'decided' | 'title';
 
 export const SORT_LABELS: Record<SongSort, string> = {
-  modified: 'Last modified',
-  created: 'Recently created',
+  modified: 'Last touched',
+  created: 'Newest first',
   decided: 'Most decided',
-  title: 'Alphabetical',
+  title: 'By title',
 };
 
 /**

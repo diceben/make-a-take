@@ -1,21 +1,28 @@
 import { Link } from 'react-router-dom';
-import { decidedOf, nextStep, phaseSummaries, type PhaseSummary } from '../../lib/dashboard';
-import { PHASE_LABELS, STATE_LABELS, type Phase } from '../../lib/journey';
-import { timeAgo } from '../../lib/dashboard';
+import {
+  decidedOf,
+  nextStep,
+  phaseSummaries,
+  timeAgo,
+  type PhaseSummary,
+} from '../../lib/dashboard';
+import { PHASE_LABELS, PHASE_VERBS, STATE_LABELS, type Phase } from '../../lib/journey';
 import type { Song } from '../../lib/model';
 import { StateRing } from '../journey/StateRing';
 import { Artwork } from './Artwork';
 import './SongCard.css';
 
 /**
- * One song, as a row you can read in about a second.
+ * One song, and the next thing it wants.
  *
- * The order is deliberate: what it is, then where it is, then what is next. The
- * seven dots are the middle of that — they say which phases are settled and
- * which one wants you, without a number that pretends the two are comparable.
+ * The card leads with where the song is and what to do about it, not with what
+ * it is made of — the tempo and the key are how you tell two cards apart, and
+ * they sit beside the title doing that job and no other. Everything below is
+ * about getting on with it.
  *
- * There is no percentage. A song's decisions are not equivalent to one another,
- * so the bar counts what is settled and says so in words beside it.
+ * No percentage. A song's decisions are not equivalent — one in mastering
+ * against thirty-one in the mix — so the figure is counted and named:
+ * "2 / 12 decisions made".
  */
 export function SongCard({
   song,
@@ -30,7 +37,11 @@ export function SongCard({
   const summaries = phaseSummaries(phases);
   const decided = decidedOf(phases);
   const next = nextStep(phases);
-  const share = decided.total === 0 ? 0 : Math.round((decided.settled / decided.total) * 100);
+  // The phase comes from the same answer as the words beside it. Working it out
+  // separately is how the card came to label a mixing decision as writing.
+  const here = next?.phase ?? 'capture';
+  const state = summaries.find((one) => one.key === here)?.state ?? 'not_touched';
+  const share = decided.total === 0 ? 0 : (decided.settled / decided.total) * 100;
 
   return (
     <li className="card">
@@ -60,14 +71,13 @@ export function SongCard({
           </p>
         </div>
 
-        {/* The dots are the whole journey at a glance. Each carries its state
-            in its accessible name, so the colour is never the only thing
-            saying what it is. */}
-        <ul className="card__phases" aria-label={`Phases of ${song.title}`}>
-          {summaries.map((summary) => (
-            <PhaseDot key={summary.key} summary={summary} songId={song.id} />
-          ))}
-        </ul>
+        {/* Where it is, and what it wants — the two things you came for. */}
+        <p className="card__where">
+          <span className="card__phase" data-state={state}>
+            {PHASE_LABELS[here]}
+          </span>
+          {next !== null && <span className="card__next">{next.what}</span>}
+        </p>
 
         <div className="card__foot">
           <span className="card__bar" aria-hidden="true">
@@ -75,18 +85,26 @@ export function SongCard({
           </span>
           <span className="card__decided">
             {decided.total === 0
-              ? 'nothing decided yet'
-              : `${decided.settled} of ${decided.total} settled`}
+              ? 'no decisions yet'
+              : `${decided.settled} / ${decided.total} decisions made`}
           </span>
           {updatedAt !== null && <span className="card__when">{timeAgo(updatedAt)}</span>}
         </div>
 
-        {next !== null && (
-          <p className="card__next">
-            <span className="card__next-label">Next</span> {next}
-          </p>
-        )}
+        {/* The journey stays: it is the fastest answer to "what have I done and
+            what is left", and each phase is its own way in. */}
+        <ul className="card__phases" aria-label={`Journey of ${song.title}`}>
+          {summaries.map((summary) => (
+            <PhaseDot key={summary.key} summary={summary} songId={song.id} />
+          ))}
+        </ul>
       </div>
+
+      {next !== null && (
+        <Link className="card__go" to={`/songs/${song.id}/${here}`}>
+          Continue {PHASE_VERBS[here]} <span aria-hidden="true">→</span>
+        </Link>
+      )}
     </li>
   );
 }
@@ -94,10 +112,9 @@ export function SongCard({
 /**
  * One phase as a ring and a word.
  *
- * A link and not a status control. The dashboard's job is to say where things
- * stand and then get out of the way — a phase holds many decisions, and there is
- * no single judgement to set from here that would not be a guess about which
- * one you meant. It takes you to the phase, where the judgements are.
+ * A link and not a status control. A phase holds many decisions, and there is no
+ * single judgement to set from a list that would not be a guess about which one
+ * you meant. It takes you to the phase, where the judgements are.
  */
 function PhaseDot({ summary, songId }: { summary: PhaseSummary; songId: string }) {
   return (

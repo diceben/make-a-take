@@ -7,10 +7,10 @@ import './Checkpoint.css';
 /**
  * The card that offers the check, in the right column.
  *
- * It says the count, then names what is still open — at most three, because a
- * card listing eleven things is a list, and a list is what the middle column
- * already is. The point of naming any is that "two things need attention" is
- * something you act on and "83% there" is not.
+ * It carries progress and the way in, and deliberately not a list of what is
+ * open — the middle column is that list, a few lines lower, and a sidebar that
+ * repeats the page is a sidebar you learn to skip. What it adds is the shape of
+ * the thing: how much of this phase is held, and how much is left.
  */
 export function CheckpointCard({
   songId,
@@ -26,9 +26,6 @@ export function CheckpointCard({
   /** Closing an empty round, which happens here rather than behind the check. */
   onClose: () => void;
 }) {
-  const named = checkpoint.open.slice(0, 3);
-  const rest = checkpoint.open.length - named.length;
-
   // A phase with nothing in it still has to be able to end, or it stays open
   // for ever. Capture is the plain case: an idea is caught or it is not, and
   // there is no judgement to make about it — so there is nothing to review, and
@@ -42,7 +39,7 @@ export function CheckpointCard({
         </span>
 
         <h2 id="checkpoint-heading" className="checkpoint__heading">
-          {PHASE_LABELS[phase]} checkpoint
+          {PHASE_LABELS[phase]} check
         </h2>
 
         <p className="checkpoint__summary">{summaryOf(checkpoint)}</p>
@@ -65,32 +62,41 @@ export function CheckpointCard({
       </span>
 
       <h2 id="checkpoint-heading" className="checkpoint__heading">
-        {PHASE_LABELS[phase]} checkpoint
+        {PHASE_LABELS[phase]} check
       </h2>
 
       {checkpoint.closedAt === null ? (
         <>
-          <p className="checkpoint__summary">{summaryOf(checkpoint)}</p>
+          {/* Progress, not a second copy of the list. Naming the open decisions
+              here repeated what the middle column says a few lines lower, and a
+              sidebar that repeats the page is a sidebar you learn to skip. */}
+          <p className="checkpoint__figure">
+            <span className="checkpoint__locked">{checkpoint.locked}</span>
+            <span className="checkpoint__of"> / {checkpoint.total} locked</span>
+          </p>
 
-          {checkpoint.open.length > 0 && (
-            <>
-              <p className="checkpoint__lead">
-                {checkpoint.open.length === 1
-                  ? 'One thing still needs attention:'
-                  : `${String(checkpoint.open.length)} things still need attention:`}
-              </p>
-              <ul className="checkpoint__list">
-                {named.map((decision) => (
-                  <li key={decision.id}>{decision.title}</li>
-                ))}
-                {rest > 0 && <li className="checkpoint__rest">and {rest} more</li>}
-              </ul>
-            </>
-          )}
+          <span className="checkpoint__bar" aria-hidden="true">
+            <span
+              className="checkpoint__fill"
+              style={{
+                width: `${String(
+                  checkpoint.total === 0 ? 0 : (checkpoint.locked / checkpoint.total) * 100,
+                )}%`,
+              }}
+            />
+          </span>
+
+          <p className="checkpoint__remaining">
+            {checkpoint.open.length === 0
+              ? 'Nothing left to decide here.'
+              : checkpoint.open.length === 1
+                ? '1 decision remaining'
+                : `${String(checkpoint.open.length)} decisions remaining`}
+          </p>
 
           {checkpoint.total > 0 && (
             <Link className="checkpoint__enter" to={`/songs/${songId}/${phase}/check`}>
-              Enter {PHASE_LABELS[phase].toLowerCase()} check <span aria-hidden="true">→</span>
+              Enter the {PHASE_LABELS[phase].toLowerCase()} check <span aria-hidden="true">→</span>
             </Link>
           )}
         </>
@@ -133,7 +139,7 @@ export function CheckpointBanner({
       </span>
 
       <p className="banner__words">
-        <span className="banner__heading">{PHASE_LABELS[phase]} checkpoint</span>
+        <span className="banner__heading">{PHASE_LABELS[phase]} check</span>
         <span className="banner__sub">
           {checkpoint.settled
             ? 'Everything here is settled. Worth one look before it is.'
@@ -142,7 +148,7 @@ export function CheckpointBanner({
       </p>
 
       <Link className="banner__enter" to={`/songs/${songId}/${phase}/check`}>
-        Enter {PHASE_LABELS[phase].toLowerCase()} check <span aria-hidden="true">→</span>
+        Enter the {PHASE_LABELS[phase].toLowerCase()} check <span aria-hidden="true">→</span>
       </Link>
     </aside>
   );

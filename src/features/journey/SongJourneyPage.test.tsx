@@ -165,7 +165,7 @@ describe('the song journey', () => {
     expect(screen.getByText('Snare needs another round')).toBeInTheDocument();
 
     // It was written in tracking, and it is not there.
-    await user.click(screen.getByRole('link', { name: /Track/ }));
+    await user.click(screen.getByRole('link', { name: /Tracking/ }));
     expect(screen.queryByText('Snare needs another round')).toBeNull();
   });
 
@@ -176,7 +176,7 @@ describe('the song journey', () => {
     expect(screen.getByText(/round 2/)).toBeInTheDocument();
     expect(screen.getByText('/ 2 decisions settled')).toBeInTheDocument();
     // Settled and locked are different questions, so they never share a figure.
-    expect(screen.getByText('0 of 2 decisions locked.')).toBeInTheDocument();
+    expect(screen.getByText('/ 2 locked')).toBeInTheDocument();
   });
 
   it('says what a phase is for, not only what it is called', async () => {
@@ -197,15 +197,16 @@ describe('the song journey', () => {
 });
 
 describe('the checkpoint on the phase', () => {
-  it('offers the check and names what is still open', async () => {
+  it('offers the check and says how much of the phase is held', async () => {
     renderAt();
     await screen.findByRole('heading', { level: 2, name: 'Mix' });
 
-    const card = screen.getByRole('region', { name: 'Mix checkpoint' });
-    expect(within(card).getByText('0 of 2 decisions locked.')).toBeInTheDocument();
-    expect(within(card).getByText('2 things still need attention:')).toBeInTheDocument();
-    expect(within(card).getByText('Vocal sits in mix')).toBeInTheDocument();
-    expect(within(card).getByRole('link', { name: /Enter mix check/ })).toHaveAttribute(
+    const card = screen.getByRole('region', { name: 'Mix check' });
+    expect(within(card).getByText('/ 2 locked')).toBeInTheDocument();
+    expect(within(card).getByText('2 decisions remaining')).toBeInTheDocument();
+    // Progress, not a second copy of the list the middle column already shows.
+    expect(within(card).queryByText('Vocal sits in mix')).toBeNull();
+    expect(within(card).getByRole('link', { name: /Enter the mix check/ })).toHaveAttribute(
       'href',
       '/songs/s1/mix/check',
     );
@@ -217,7 +218,7 @@ describe('the checkpoint on the phase', () => {
     renderAt('/songs/s1/master');
     await screen.findByRole('heading', { level: 2, name: 'Master' });
 
-    const card = screen.getByRole('region', { name: 'Master checkpoint' });
+    const card = screen.getByRole('region', { name: 'Master check' });
     expect(within(card).getByText('No decisions in this round.')).toBeInTheDocument();
     // Nothing to review, so no trip to the check — the act happens here.
     expect(within(card).queryByRole('link', { name: /check/ })).toBeNull();
@@ -246,14 +247,14 @@ describe('the checkpoint on the phase', () => {
 
     // Asking for decisions here used to leave a signed-off phase reading
     // "not started", which is the opposite of what happened.
-    expect(await within(journey).findByText('approved')).toBeInTheDocument();
+    expect(await within(journey).findByText('signed off')).toBeInTheDocument();
   });
 
   it('counts the judgements the song has taken, over every round', async () => {
     renderAt();
     await screen.findByRole('heading', { level: 2, name: 'Mix' });
 
-    const credits = screen.getByRole('region', { name: 'Production credits' });
+    const credits = screen.getByRole('region', { name: 'Decision log' });
     // Write, track and the mix's one judged decision. Nothing untouched counts.
     expect(within(credits).getByText('3')).toBeInTheDocument();
     expect(within(credits).queryByText('Capture')).toBeNull();
@@ -345,7 +346,7 @@ describe('the judgement picker', () => {
 
   it('marks a judgement nobody has met a second time', async () => {
     renderAt('/songs/s1/track');
-    await screen.findByRole('heading', { level: 2, name: 'Track' });
+    await screen.findByRole('heading', { level: 2, name: 'Tracking' });
 
     // Scoped to the list: the sidebar carries the same words for the phases
     // that hold one, which is the point of it.
