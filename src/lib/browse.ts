@@ -1,4 +1,4 @@
-import type { SongWithSteps } from './model';
+import type { Song } from './model';
 import type { PhaseKey } from './journey';
 
 /**
@@ -26,7 +26,7 @@ export const SORT_LABELS: Record<SortBy, string> = {
  * see the reason for is worse than no result, and a typo you can see is easy to
  * fix. Fuzziness earns its place when suggesting, not when hiding things.
  */
-export function matchesSearch(song: SongWithSteps, query: string): boolean {
+export function matchesSearch(song: Song, query: string): boolean {
   const needle = query.trim().toLowerCase();
   if (needle === '') return true;
 
@@ -49,11 +49,11 @@ export function matchesPhase(phase: PhaseKey, filter: PhaseFilter): boolean {
  * this puts every song in one order.
  */
 export function sortSongs(
-  songs: SongWithSteps[],
+  songs: Song[],
   by: SortBy,
   /** How many decisions each song has locked — counted, never a percentage. */
-  lockedOf: (song: SongWithSteps) => number = () => 0,
-): SongWithSteps[] {
+  lockedOf: (song: Song) => number = () => 0,
+): Song[] {
   const sorted = [...songs];
 
   if (by === 'progress') {

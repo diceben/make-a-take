@@ -1,0 +1,180 @@
+/* The rail. Fixed on a wide screen, a drawer on a narrow one — same markup,
+   because two navigations would be two things to keep in step. */
+.rail {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  width: var(--sidebar-width);
+  flex-direction: column;
+  padding: var(--space-6) var(--space-4);
+  border-right: var(--border-width) solid var(--rule);
+  background: var(--surface);
+}
+
+.rail__mark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-2);
+}
+
+.rail__logo {
+  width: 20px;
+  height: 20px;
+  color: var(--accent-soft);
+}
+
+.rail__name {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-second);
+}
+
+.rail__nav {
+  flex: 1;
+  margin-top: var(--space-8);
+  overflow-y: auto;
+}
+
+.rail__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rail__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--text-second);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.rail__link:hover {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+
+/* The page you are on. Marked by fill and by aria-current, so it does not
+   depend on seeing the fill. */
+.rail__link--on {
+  background: var(--button);
+  color: var(--text);
+}
+
+.rail__link--on .rail__icon {
+  color: var(--accent-soft);
+}
+
+.rail__icon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  color: var(--text-muted);
+}
+
+.rail__eyebrow {
+  margin: var(--space-8) 0 var(--space-2);
+  padding: 0 var(--space-3);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rail__link--later {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.rail__link--later:hover {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.rail__foot {
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--rule);
+}
+
+/* ------------------------------------------------------------ the drawer */
+
+.rail__opener {
+  position: fixed;
+  left: var(--space-3);
+  top: var(--space-3);
+  z-index: 30;
+  display: none;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.rail__bars,
+.rail__bars::before,
+.rail__bars::after {
+  display: block;
+  width: 16px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--text);
+}
+
+.rail__bars::before,
+.rail__bars::after {
+  position: relative;
+  content: '';
+}
+
+.rail__bars::before {
+  top: -5px;
+}
+
+.rail__bars::after {
+  top: 3.5px;
+}
+
+.rail__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  border: 0;
+  background: rgb(0 0 0 / 60%);
+}
+
+@media (max-width: 60rem) {
+  .rail {
+    transform: translateX(-100%);
+    transition: transform var(--transition-fast);
+  }
+
+  .rail--open {
+    transform: translateX(0);
+  }
+
+  .rail__opener {
+    display: flex;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail {
+    transition: none;
+  }
+}

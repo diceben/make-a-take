@@ -1,0 +1,257 @@
+.panel,
+.credits-panel {
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.panel__heading {
+  color: var(--text-second);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-normal);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.panel__empty {
+  margin-top: var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+/* ---------------------------------------------------------- the activity */
+
+.feed {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.feed__row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: var(--border-width) solid var(--rule);
+}
+
+.feed__row:last-child {
+  border-bottom: 0;
+}
+
+/* A dot in the colour of what happened. Decorative — the sentence beside it
+   says the same thing in words. */
+.feed__mark {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--state-none);
+}
+
+.feed__mark[data-kind='locked'] {
+  background: var(--state-locked);
+}
+
+.feed__mark[data-kind='judged'] {
+  background: var(--state-dir);
+}
+
+.feed__mark[data-kind='checkpoint'] {
+  background: var(--state-feels);
+}
+
+.feed__mark[data-kind='note'] {
+  background: var(--state-notq);
+}
+
+.feed__text {
+  flex: 1;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.feed__when {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------- the ring */
+
+.stages {
+  margin-top: var(--space-4);
+}
+
+.stages__ring {
+  display: block;
+  width: 130px;
+  height: 130px;
+  margin: 0 auto;
+}
+
+.stages__figure {
+  fill: var(--text);
+  font-size: 26px;
+  font-weight: var(--weight-medium);
+}
+
+.stages__unit {
+  fill: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stages__key {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stages__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  font-size: var(--text-sm);
+}
+
+.stages__swatch {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 2px;
+  background: var(--state-none);
+}
+
+.stages__swatch[data-stage='capture'] {
+  background: var(--stage-capture);
+}
+.stages__swatch[data-stage='write'] {
+  background: var(--stage-write);
+}
+.stages__swatch[data-stage='produce'] {
+  background: var(--stage-produce);
+}
+.stages__swatch[data-stage='track'] {
+  background: var(--stage-track);
+}
+.stages__swatch[data-stage='edit'] {
+  background: var(--stage-edit);
+}
+.stages__swatch[data-stage='mix'] {
+  background: var(--stage-mix);
+}
+.stages__swatch[data-stage='master'] {
+  background: var(--stage-master);
+}
+
+.stages__name {
+  flex: 1;
+  color: var(--text-second);
+}
+
+.stages__count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* ---------------------------------------------------------- the credits */
+
+.credits-panel__month {
+  margin-top: var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.credits-panel__figure {
+  margin-top: var(--space-1);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-medium);
+  line-height: 1.1;
+}
+
+.credits-panel__unit {
+  color: var(--text-second);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-normal);
+}
+
+.bars {
+  display: flex;
+  height: 56px;
+  align-items: flex-end;
+  gap: var(--space-2);
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bars__col {
+  display: flex;
+  height: 100%;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.bars__bar {
+  display: block;
+  min-height: 2px;
+  border-radius: 2px;
+  background: var(--edge-dir);
+}
+
+/* This month, at the end, is the one the figure above is about. */
+.bars__col:last-child .bars__bar {
+  background: var(--accent);
+}
+
+.bars__label {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+/* ------------------------------------------------------- nothing to show */
+
+.blank {
+  margin-top: var(--space-4);
+  padding: var(--space-12) var(--space-6);
+  border: var(--border-width) dashed var(--rule-alt);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.blank__lead {
+  font-size: var(--text-lg);
+}
+
+.blank__note {
+  margin: var(--space-2) auto 0;
+  max-width: 40ch;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.blank__button {
+  margin-top: var(--space-6);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--border-alt);
+  border-radius: var(--radius-sm);
+  background: var(--button);
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+
+.blank__button:hover {
+  background: var(--edge-dir);
+}

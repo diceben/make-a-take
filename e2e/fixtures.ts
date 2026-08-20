@@ -66,8 +66,10 @@ const song = (id: string, title: string) => ({
   deadline: null,
   notes: '',
   position: 0,
-  phase_states: [],
-  track_states: [],
+  genre: 'Indie',
+  bpm: 112,
+  musical_key: 'A minor',
+  archived_at: null,
 });
 
 const SONGS = [song('s1', 'Opening Track'), song('s2', 'The Slow One')];
@@ -166,7 +168,11 @@ export async function signedIn(page: Page) {
   });
 
   await page.route('**/rest/v1/notes*', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(NOTES) }),
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(NOTES.map((note) => ({ ...note, song_id: 's1' }))),
+    }),
   );
 
   await page.route('**/rest/v1/rounds*', (route) =>

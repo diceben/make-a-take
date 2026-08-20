@@ -27,7 +27,7 @@ import {
   type PhaseKey,
 } from '../../lib/journey';
 import { checkpointFor } from '../../lib/checkpoint';
-import type { SongWithSteps } from '../../lib/model';
+import type { Song } from '../../lib/model';
 import { CheckpointBanner, CheckpointCard } from './Checkpoint';
 import { DecisionRow } from './DecisionRow';
 import { PhaseIcon } from './PhaseIcon';
@@ -59,7 +59,7 @@ export function SongJourneyPage() {
   const navigate = useNavigate();
   const userId = auth.status === 'signed-in' ? auth.session.user.id : null;
 
-  const [song, setSong] = useState<SongWithSteps | null>(null);
+  const [song, setSong] = useState<Song | null>(null);
   const [journey, setJourney] = useState<Journey | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [error, setError] = useState<string | null>(null);

@@ -48,6 +48,8 @@ function fakeClient({
 // renders without renderApp overwriting them a moment later.
 beforeEach(() => {
   vi.mocked(data.listSongs).mockResolvedValue([]);
+  vi.mocked(data.listJourneys).mockResolvedValue(new Map());
+  vi.mocked(data.listNotes).mockResolvedValue(new Map());
   vi.mocked(data.getProfile).mockResolvedValue(null);
 });
 
@@ -117,7 +119,7 @@ describe('signed out', () => {
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Your songs' }),
+      await screen.findByRole('heading', { level: 1, name: /^Welcome back/ }),
     ).toBeInTheDocument();
   });
 
@@ -152,17 +154,17 @@ describe('signed out', () => {
 describe('signed in', () => {
   const session = { user: { id: 'user-1', email: 'ben@example.com' } } as Session;
 
-  it('shows the song list', async () => {
+  it('lands on the dashboard', async () => {
     renderApp(fakeClient({ session }));
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Your songs' }),
+      await screen.findByRole('heading', { level: 1, name: /^Welcome back/ }),
     ).toBeInTheDocument();
   });
 
   it('puts the account behind the avatar, with the version on it', async () => {
     const user = userEvent.setup();
     renderApp(fakeClient({ session }));
-    await screen.findByRole('heading', { level: 1, name: 'Your songs' });
+    await screen.findByRole('heading', { level: 1, name: /^Welcome back/ });
 
     const avatar = screen.getByRole('button', { name: 'Account: ben@example.com' });
     expect(avatar).toHaveTextContent('B');
@@ -179,7 +181,7 @@ describe('signed in', () => {
     const user = userEvent.setup();
     vi.mocked(data.getProfile).mockResolvedValue({ display_name: 'Ben Dice' });
     renderApp(fakeClient({ session }));
-    await screen.findByRole('heading', { level: 1, name: 'Your songs' });
+    await screen.findByRole('heading', { level: 1, name: /^Welcome back/ });
 
     const avatar = await screen.findByRole('button', { name: 'Account: Ben Dice' });
     expect(avatar).toHaveTextContent('BD');
@@ -191,7 +193,7 @@ describe('signed in', () => {
   it('signs out again', async () => {
     const user = userEvent.setup();
     renderApp(fakeClient({ session }));
-    await screen.findByRole('heading', { level: 1, name: 'Your songs' });
+    await screen.findByRole('heading', { level: 1, name: /^Welcome back/ });
 
     // Sign out lives behind the avatar now.
     await user.click(screen.getByRole('button', { name: /^Account:/ }));

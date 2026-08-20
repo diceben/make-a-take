@@ -1,39 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { matchesPhase, matchesSearch, resultSummary, sortSongs } from './browse';
 import { PHASE_KEYS } from './journey';
-import { PHASES, TRACKS, type SongWithSteps, type StepStatus } from './model';
 
-const song = (
-  id: string,
-  title: string,
-  artist: string | null,
-  done: Partial<Record<string, StepStatus>> = {},
-): SongWithSteps => ({
+const song = (id: string, title: string, artist: string | null = null) => ({
   id,
   title,
   artist,
+  genre: null,
+  bpm: null,
+  musical_key: null,
   deadline: null,
   notes: '',
   position: 0,
-  phase_states: PHASES.map((phase) => ({
-    id: `p-${id}-${phase}`,
-    song_id: id,
-    phase,
-    status: done[phase] ?? 'todo',
-    note: '',
-  })),
-  track_states: TRACKS.map((track) => ({
-    id: `t-${id}-${track}`,
-    song_id: id,
-    track,
-    status: done[track] ?? 'todo',
-    note: '',
-  })),
+  archived_at: null,
 });
-
-const everything: Partial<Record<string, StepStatus>> = {};
-for (const phase of PHASES) everything[phase] = 'done';
-for (const track of TRACKS) everything[track] = 'done';
 
 describe('matchesSearch', () => {
   const opening = song('s1', 'Opening Track', 'Sarah Kane');
@@ -78,9 +58,9 @@ describe('matchesPhase', () => {
 });
 
 describe('sortSongs', () => {
-  const a = song('s1', 'Bravo', null, { writing: 'done' });
-  const b = song('s2', 'Alpha', null);
-  const c = song('s3', 'Charlie', null, everything);
+  const a = song('s1', 'Bravo');
+  const b = song('s2', 'Alpha');
+  const c = song('s3', 'Charlie');
 
   // How much is decided is counted from the journey and handed in, so the rule
   // itself never has to know what a decision is.

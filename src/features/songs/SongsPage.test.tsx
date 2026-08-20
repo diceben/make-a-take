@@ -5,33 +5,22 @@ import { MemoryRouter } from 'react-router-dom';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { SongsPage } from './SongsPage';
 import { AuthContext, type Auth } from '../auth/auth-context';
-import { PHASES, TRACKS, type PhaseState, type StepStatus, type TrackState } from '../../lib/model';
 import * as data from '../../lib/data';
 import { PHASE_KEYS, type Phase } from '../../lib/journey';
 
 vi.mock('../../lib/data');
 
-const phases = (overrides: Partial<Record<string, StepStatus>> = {}): PhaseState[] =>
-  PHASES.map((phase) => ({
-    id: `p-${phase}`,
-    song_id: 's1',
-    phase,
-    status: overrides[phase] ?? 'todo',
-    note: '',
-  }));
-
-const tracks = (status: StepStatus = 'todo'): TrackState[] =>
-  TRACKS.map((track) => ({ id: `t-${track}`, song_id: 's1', track, status, note: '' }));
-
-const song = (id: string, title: string, artist: string | null, phaseOverrides = {}) => ({
+const song = (id: string, title: string, artist: string | null) => ({
   id,
   title,
   artist,
+  genre: null,
+  bpm: null,
+  musical_key: null,
   deadline: null,
   notes: '',
   position: 0,
-  phase_states: phases(phaseOverrides),
-  track_states: tracks(),
+  archived_at: null,
 });
 
 const auth = {
@@ -106,7 +95,7 @@ beforeEach(() => {
     ]),
   );
   vi.mocked(data.listSongs).mockResolvedValue([
-    song('s1', 'Opening Track', 'Sarah Kane', { writing: 'done', arrangement: 'done' }),
+    song('s1', 'Opening Track', 'Sarah Kane'),
     song('s2', 'The Slow One', 'Sarah Kane'),
   ]);
 });
@@ -393,7 +382,7 @@ describe('SongsPage', () => {
   it('keeps only the songs sitting on the chosen phase', async () => {
     const user = userEvent.setup();
     vi.mocked(data.listSongs).mockResolvedValue([
-      song('s1', 'Opening Track', 'Sarah Kane', { writing: 'done', arrangement: 'done' }),
+      song('s1', 'Opening Track', 'Sarah Kane'),
       song('s2', 'The Slow One', 'Sarah Kane'),
     ]);
     renderPage();
@@ -408,7 +397,7 @@ describe('SongsPage', () => {
   it('drops the headings and names the artist in the row for the other orders', async () => {
     const user = userEvent.setup();
     vi.mocked(data.listSongs).mockResolvedValue([
-      song('s1', 'Opening Track', 'Sarah Kane', { writing: 'done' }),
+      song('s1', 'Opening Track', 'Sarah Kane'),
       song('s2', 'Bell Tower', 'Bell Foundry'),
     ]);
     renderPage();

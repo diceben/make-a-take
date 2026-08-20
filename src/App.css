@@ -23,6 +23,21 @@
   padding: var(--space-8) var(--space-4) var(--space-12);
 }
 
+/* Signed in, the rail is fixed at the left and the content sits beside it.
+   Left as normal flow below the drawer breakpoint, where the rail is not
+   taking up any room. */
+.app-main--railed {
+  max-width: none;
+  margin: 0;
+  padding: var(--space-8) var(--space-8) var(--space-12) calc(var(--sidebar-width) + var(--space-8));
+}
+
+@media (max-width: 60rem) {
+  .app-main--railed {
+    padding: calc(var(--space-12) + var(--space-4)) var(--space-4) var(--space-12);
+  }
+}
+
 .app-main h1 {
   font-size: var(--text-2xl);
   line-height: 1.2;

@@ -1,0 +1,199 @@
+.dash__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.dash__hello {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-medium);
+  line-height: 1.2;
+}
+
+.dash__under {
+  margin-top: var(--space-2);
+  color: var(--text-second);
+  font-size: var(--text-sm);
+}
+
+.dash__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dash__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dash__glass {
+  position: absolute;
+  left: var(--space-3);
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.dash__search input {
+  width: 15rem;
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-8);
+  border: var(--border-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+/* The one filled control on the page. There is exactly one thing you might
+   have come here to do that is not reading. */
+.dash__new {
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--border-alt);
+  border-radius: var(--radius-sm);
+  background: var(--button);
+  color: var(--text);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  transition: background var(--transition-fast);
+}
+
+.dash__new:hover {
+  background: var(--edge-dir);
+}
+
+/* ------------------------------------------------------------- filtering */
+
+.dash__browse {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+}
+
+.dash__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dash__chip {
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width) solid var(--rule-alt);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-second);
+  font-size: var(--text-xs);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.dash__chip:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.dash__chip[aria-pressed='true'] {
+  border-color: var(--edge-dir);
+  background: var(--button);
+  color: var(--text);
+}
+
+.dash__sort {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dash__sort-label {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dash__sort select {
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--border-control);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+.dash__count {
+  margin-top: var(--space-3);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.dash__songs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ----------------------------------------------------------- the panels */
+
+.dash__panels {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-12);
+  grid-template-columns: 1.4fr 1fr 1fr;
+  align-items: start;
+}
+
+@media (max-width: 68rem) {
+  .dash__panels {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 46rem) {
+  .dash__panels {
+    grid-template-columns: 1fr;
+  }
+
+  .dash__head {
+    flex-direction: column;
+  }
+
+  .dash__tools {
+    width: 100%;
+  }
+
+  .dash__search {
+    flex: 1;
+  }
+
+  .dash__search input {
+    width: 100%;
+  }
+}
+
+/* The list needs a heading of its own — without one the cards' titles jumped
+   from h1 straight to h3, and the page had a level missing rather than a
+   quiet one. Small on purpose: it is structure, not an announcement. */
+.dash__legend {
+  margin-top: var(--space-8);
+  color: var(--text-second);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-normal);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
