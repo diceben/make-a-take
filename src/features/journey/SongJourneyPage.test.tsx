@@ -212,30 +212,6 @@ describe('the checkpoint on the phase', () => {
     );
   });
 
-  it('offers to fill an empty phase before it offers to close it', async () => {
-    const user = userEvent.setup();
-    vi.mocked(data.fillPhaseFromTemplate).mockResolvedValue(3);
-    renderAt('/songs/s1/master');
-    await screen.findByRole('heading', { level: 2, name: 'Master' });
-
-    const card = screen.getByRole('region', { name: 'Master check' });
-    expect(within(card).getByText('No decisions in this round.')).toBeInTheDocument();
-    // Nothing to review, so no trip to the check — both acts happen here.
-    expect(within(card).queryByRole('link', { name: /check/ })).toBeNull();
-
-    // Filling comes first: an empty phase is usually one nobody has put
-    // anything in yet, not one that is finished.
-    const buttons = within(card)
-      .getAllByRole('button')
-      .map((one) => one.textContent);
-    expect(buttons).toEqual(['Fill from the template', 'Close master empty']);
-
-    await user.click(within(card).getByRole('button', { name: 'Fill from the template' }));
-    await waitFor(() => {
-      expect(data.fillPhaseFromTemplate).toHaveBeenCalledWith(auth.client, 'phase-master');
-    });
-  });
-
   it('lets a phase with no decisions be closed, without a review it has no use for', async () => {
     const user = userEvent.setup();
     vi.mocked(data.closeRound).mockResolvedValue('2026-08-15T10:00:00Z');
@@ -243,8 +219,11 @@ describe('the checkpoint on the phase', () => {
     await screen.findByRole('heading', { level: 2, name: 'Master' });
 
     const card = screen.getByRole('region', { name: 'Master check' });
+    expect(within(card).getByText('No decisions in this round.')).toBeInTheDocument();
+    // Nothing to review, so no trip to the check — the act happens here.
+    expect(within(card).queryByRole('link', { name: /check/ })).toBeNull();
 
-    await user.click(within(card).getByRole('button', { name: 'Close master empty' }));
+    await user.click(within(card).getByRole('button', { name: 'Close master' }));
     await waitFor(() => {
       expect(data.closeRound).toHaveBeenCalledWith(auth.client, 'round-master');
     });
@@ -264,7 +243,7 @@ describe('the checkpoint on the phase', () => {
     const row = () => within(journey).getByRole('link', { name: /Master/ });
     expect(within(row()).getByText('not started')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Close master empty' }));
+    await user.click(screen.getByRole('button', { name: 'Close master' }));
 
     // Asking for decisions here used to leave a completed phase reading
     // "not started", which is the opposite of what happened.

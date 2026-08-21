@@ -4,7 +4,6 @@ import { useAuth } from '../auth/auth-context';
 import {
   addNote,
   closeRound,
-  fillPhaseFromTemplate,
   getJourney,
   getSong,
   resolveNote,
@@ -176,27 +175,6 @@ export function SongJourneyPage() {
     }
   };
 
-  /**
-   * Filling an empty phase from its template.
-   *
-   * Reloads rather than patching state: the database decides which decisions it
-   * added and in what order, and guessing at that here would be a second answer
-   * to a question only one side of the wire can settle.
-   */
-  const fill = async (phaseId: string | undefined) => {
-    if (phaseId === undefined) return;
-    setClosing(true);
-    setError(null);
-    try {
-      await fillPhaseFromTemplate(client, phaseId);
-      await load();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'That phase was not filled.');
-    } finally {
-      setClosing(false);
-    }
-  };
-
   const tick = async (stepId: string, done: boolean) => {
     setError(null);
     try {
@@ -338,7 +316,6 @@ export function SongJourneyPage() {
               checkpoint={checkpoint}
               busy={closing}
               onClose={() => void close(round?.id)}
-              onFill={() => void fill(phase?.id)}
             />
           )}
 

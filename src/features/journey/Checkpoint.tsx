@@ -18,7 +18,6 @@ export function CheckpointCard({
   checkpoint,
   busy = false,
   onClose,
-  onFill,
 }: {
   songId: string;
   phase: PhaseKey;
@@ -26,8 +25,6 @@ export function CheckpointCard({
   busy?: boolean;
   /** Closing an empty round, which happens here rather than behind the check. */
   onClose: () => void;
-  /** Filling an empty round from the template. */
-  onFill: () => void;
 }) {
   // A phase with nothing in it still has to be able to end, or it stays open
   // for ever. Capture is the plain case: an idea is caught or it is not, and
@@ -47,19 +44,12 @@ export function CheckpointCard({
 
         <p className="checkpoint__summary">{summaryOf(checkpoint)}</p>
         <p className="checkpoint__lead">
-          Take the template&rsquo;s, or close it as it is — some phases genuinely need no decision,
-          and an idea is caught or it is not.
+          Some phases need none. Closing records that you went through it, and going back later
+          opens a new round rather than undoing this one.
         </p>
 
-        {/* Filling first, because it is the one you almost always want: an
-            empty phase is usually one nobody has put anything in yet, not one
-            that is finished. */}
-        <button type="button" className="checkpoint__fill" disabled={busy} onClick={onFill}>
-          {busy ? 'Working…' : 'Fill from the template'}
-        </button>
-
         <button type="button" className="checkpoint__close" disabled={busy} onClick={onClose}>
-          {busy ? 'Working…' : `Close ${PHASE_LABELS[phase].toLowerCase()} empty`}
+          {busy ? 'Closing…' : `Close ${PHASE_LABELS[phase].toLowerCase()}`}
         </button>
       </section>
     );
