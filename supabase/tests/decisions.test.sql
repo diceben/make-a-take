@@ -272,5 +272,104 @@ select test.ok(
 
 reset role;
 
+-- ------------------------------------------------------ filling a phase again
+
+-- A helper so the tests can name a phase without carrying uuids around.
+create or replace function test.phase_of(p_song uuid, p_key public.phase_key)
+returns uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select id from public.phases where song_id = p_song and key = p_key;
+$$;
+
+grant execute on function test.phase_of(uuid, public.phase_key) to authenticated;
+
+-- Emptying capture is how a carried-over song arrives: seven phases, and
+-- nothing in the one that had nothing to carry.
+delete from public.decisions d
+using public.rounds r, public.phases ph
+where d.round_id = r.id
+  and r.phase_id = ph.id
+  and ph.song_id = '50000000-0000-0000-0000-000000000001'
+  and ph.key = 'capture';
+
+set role authenticated;
+select test.login('aaaa0000-0000-0000-0000-00000000000a');
+
+select test.ok(
+  public.fill_phase_from_template(
+    test.phase_of('50000000-0000-0000-0000-000000000001', 'capture')) = 2,
+  'the owner can fill an empty phase from the template');
+
+select test.ok(
+  (select count(*) from public.decisions d
+   join public.rounds r on r.id = d.round_id
+   where r.phase_id = test.phase_of('50000000-0000-0000-0000-000000000001', 'capture')) = 2,
+  'and the decisions are there afterwards');
+
+-- Twice is the case that matters: a person will press it twice, and a phase
+-- with "Structure" in it twice is worse than one that refused.
+select test.ok(
+  public.fill_phase_from_template(
+    test.phase_of('50000000-0000-0000-0000-000000000001', 'capture')) = 0,
+  'filling again adds nothing, because every title is already there');
+
+-- Produce arrived full from the template and has not been touched since.
+select test.ok(
+  public.fill_phase_from_template(
+    test.phase_of('50000000-0000-0000-0000-000000000001', 'produce')) = 0,
+  'a phase that is already full is left alone');
+
+-- The mix is on round two, and round two was opened empty. Filling reaches the
+-- round in hand, not the one before it — going back should not mean typing the
+-- template out again.
+select test.ok(
+  public.fill_phase_from_template(
+    test.phase_of('50000000-0000-0000-0000-000000000001', 'mix')) = 6,
+  'a reopened round can be filled from the template as well');
+
+select test.login('bbbb0000-0000-0000-0000-00000000000b');
+
+set role postgres;
+delete from public.decisions d
+using public.rounds r, public.phases ph
+where d.round_id = r.id
+  and r.phase_id = ph.id
+  and ph.song_id = '50000000-0000-0000-0000-000000000001'
+  and ph.key = 'edit';
+set role authenticated;
+select test.login('bbbb0000-0000-0000-0000-00000000000b');
+
+select test.ok(
+  public.fill_phase_from_template(
+    test.phase_of('50000000-0000-0000-0000-000000000001', 'edit')) >= 1,
+  'an editor may fill a phase too');
+
+-- The reason this function exists rather than fill_round being exposed: that
+-- one is security definer and asks nobody anything.
+select test.login('dddd0000-0000-0000-0000-00000000000d');
+select test.denied(
+  format('select public.fill_phase_from_template(%L)',
+         test.phase_of('50000000-0000-0000-0000-000000000001', 'produce')),
+  'a stranger may not fill a phase of a song they cannot see');
+
+-- The reason the machinery moved schemas rather than being revoked: Supabase
+-- grants `authenticated` execute on everything in `public`, so a revoke there
+-- lasts until the next grant.
+select test.denied(
+  'select private.fill_round(''00000000-0000-0000-0000-000000000000'', ''00000000-0000-0000-0000-000000000000'')',
+  'and the unchecked filler is not reachable from outside the database at all');
+
+select test.ok(
+  (select count(*) from pg_proc p
+   join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = 'fill_round') = 0,
+  'nothing named fill_round is left in the exposed schema');
+
+reset role;
+
 \echo ''
 \echo 'Decision model tests passed.'

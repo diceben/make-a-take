@@ -251,7 +251,7 @@ describe('markersFor', () => {
     expect(markersFor(mix, [note('mix', 'track')])).toHaveLength(2);
   });
 
-  it('says a phase has been signed off', () => {
+  it('says a phase has been completed', () => {
     const mix = phase(
       'mix',
       [decision('A', 'locked', { state_confirmed_at: '2026-08-16T10:00:00Z' })],

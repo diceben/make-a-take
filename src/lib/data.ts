@@ -396,3 +396,26 @@ export async function listNotes(client: SupabaseClient): Promise<Map<string, Not
   }
   return bySong;
 }
+
+/**
+ * Fills the round a phase is on from its template, and says how many were added.
+ *
+ * Adding nothing is a normal answer, not a failure: it means every title the
+ * template offers is already there. The check lives in the database — the
+ * function refuses outright for anybody who may not edit the song, rather than
+ * filtering the write away and reporting success.
+ */
+export async function fillPhaseFromTemplate(
+  client: SupabaseClient,
+  phaseId: string,
+): Promise<number> {
+  // The project has no generated types, so rpc() hands back `any`. Naming the
+  // shape here is the one place that guess is made, rather than letting it
+  // spread through everything that calls this.
+  const { data, error } = (await client.rpc('fill_phase_from_template', {
+    p_phase: phaseId,
+  })) as { data: number | null; error: { message: string } | null };
+
+  if (error) throw new Error(error.message);
+  return data ?? 0;
+}

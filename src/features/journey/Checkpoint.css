@@ -241,3 +241,42 @@
     transition: none;
   }
 }
+
+/* The likelier of the two, so it leads and it is the filled one. An empty
+   phase is usually one nobody has put anything in yet. */
+.checkpoint__fill {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border-alt);
+  border-radius: var(--radius-sm);
+  background: var(--button);
+  color: var(--text);
+  font-size: var(--text-sm);
+  text-align: center;
+  transition: background var(--transition-fast);
+}
+
+.checkpoint__fill:hover:not(:disabled) {
+  background: var(--edge-dir);
+}
+
+.checkpoint__fill:disabled,
+.checkpoint__close:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Closing an empty phase is the quieter of the two now. */
+.checkpoint__fill + .checkpoint__close {
+  margin-top: var(--space-2);
+  border-color: var(--border-control);
+  background: transparent;
+  color: var(--text-second);
+}
+
+.checkpoint__fill + .checkpoint__close:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--text);
+}

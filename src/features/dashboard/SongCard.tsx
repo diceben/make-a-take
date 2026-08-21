@@ -124,7 +124,7 @@ function PhaseDot({ summary, songId }: { summary: PhaseSummary; songId: string }
         to={`/songs/${songId}/${summary.key}`}
         data-state={summary.state}
         aria-label={`${PHASE_LABELS[summary.key]}: ${
-          summary.signedOff ? 'signed off' : STATE_LABELS[summary.state]
+          summary.signedOff ? 'Completed' : STATE_LABELS[summary.state]
         }`}
       >
         <StateRing state={summary.state} />

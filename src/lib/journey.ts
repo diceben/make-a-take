@@ -322,8 +322,10 @@ export function markersFor(phase: Phase, notes: Note[]): Marker[] {
     markers.push({ kind: 'notes', text: waiting === 1 ? '1 note' : `${waiting} notes` });
   if (decisions.some(heardOnce)) markers.push({ kind: 'heard-once', text: 'heard once' });
   if (phase.current_round > 1) markers.push({ kind: 'round', text: `R${phase.current_round}` });
-  // "Signed off" and not "approved": you are not approving somebody else's work.
-  if (closed) markers.push({ kind: 'closed', text: 'signed off' });
+  // "Completed" and not "approved": you are not approving somebody else's work,
+  // and not "signed off" either — that is what a form is, not a pass through a
+  // phase.
+  if (closed) markers.push({ kind: 'closed', text: 'completed' });
   else if (decisions.some((decision) => decision.state !== 'not_touched')) {
     markers.push({ kind: 'count', text: `${counted.locked} / ${counted.total} locked` });
   } else {
