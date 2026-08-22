@@ -233,7 +233,7 @@ describe('the checkpoint on the phase', () => {
     expect(within(card).getByRole('link', { name: /Go back in/ })).toBeInTheDocument();
   });
 
-  it('marks a closed phase as signed off, even one that decided nothing', async () => {
+  it('marks a closed phase as completed, even one that decided nothing', async () => {
     const user = userEvent.setup();
     vi.mocked(data.closeRound).mockResolvedValue('2026-08-15T10:00:00Z');
     renderAt('/songs/s1/master');
@@ -245,9 +245,9 @@ describe('the checkpoint on the phase', () => {
 
     await user.click(screen.getByRole('button', { name: 'Close master' }));
 
-    // Asking for decisions here used to leave a signed-off phase reading
+    // Asking for decisions here used to leave a completed phase reading
     // "not started", which is the opposite of what happened.
-    expect(await within(journey).findByText('signed off')).toBeInTheDocument();
+    expect(await within(journey).findByText('completed')).toBeInTheDocument();
   });
 
   it('counts the judgements the song has taken, over every round', async () => {

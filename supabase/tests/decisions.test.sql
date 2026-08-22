@@ -272,5 +272,45 @@ select test.ok(
 
 reset role;
 
+-- ------------------------------------------------------ a round fills itself
+
+-- A helper so the tests can name a phase without carrying uuids around.
+create or replace function test.phase_of(p_song uuid, p_key public.phase_key)
+returns uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select id from public.phases where song_id = p_song and key = p_key;
+$$;
+
+-- Reopening the mix is the case the rule was missing: round 2 used to arrive
+-- empty, so going back into a phase showed nothing to decide.
+select test.ok(
+  (select count(*) from public.decisions d
+   join public.rounds r on r.id = d.round_id
+   where r.phase_id = test.phase_of('50000000-0000-0000-0000-000000000001', 'mix')
+     and r.number = 2) = 6,
+  'a reopened round arrives with the phase decisions, like the first one');
+
+-- The template's decisions are given, not assembled, so nothing outside the
+-- database may put them anywhere.
+select test.ok(
+  (select count(*) from pg_proc p
+   join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public'
+     and p.proname in ('fill_round', 'fill_round_gaps', 'fill_phase_from_template')) = 0,
+  'the filler is not reachable from outside the database at all');
+
+set role authenticated;
+select test.login('dddd0000-0000-0000-0000-00000000000d');
+
+select test.denied(
+  'select private.fill_round_gaps(''00000000-0000-0000-0000-000000000000'', ''00000000-0000-0000-0000-000000000000'')',
+  'and a stranger cannot reach it by name either');
+
+reset role;
+
 \echo ''
 \echo 'Decision model tests passed.'
